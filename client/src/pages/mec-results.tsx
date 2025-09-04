@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
-import { 
+import {
   Building2,
   Plus,
   Edit,
@@ -21,7 +21,8 @@ import {
   AlertTriangle,
   Search,
   Filter,
-  Calendar
+  Calendar,
+  Minus
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,20 +31,21 @@ import { format } from "date-fns";
 
 // MEC result entry schema
 const mecResultSchema = z.object({
-  constituencyId: z.string().min(1, "Constituency is required"),
-  pollingCenterId: z.string().min(1, "Polling center is required"),
+  constituency: z.string().min(1, "Constituency is required"),
+  pollingCenter: z.string().min(1, "Polling center is required"),
   category: z.enum(["president", "mp", "councilor"]),
   candidateVotes: z.array(z.object({
-    candidateName: z.string(),
-    partyName: z.string(),
-    votes: z.number().min(0, "Votes must be 0 or greater")
-  })).min(1, "At least one candidate vote is required"),
-  totalVotes: z.number().min(0, "Total votes must be 0 or greater"),
-  invalidVotes: z.number().min(0, "Invalid votes must be 0 or greater"),
-  mecOfficialName: z.string().min(1, "MEC official name is required"),
+    candidateId: z.string().min(1, "Candidate is required"),
+    candidateName: z.string().min(1, "Candidate name is required"),
+    partyName: z.string().min(1, "Party name is required"),
+    votes: z.number().min(0, "Votes must be non-negative"),
+  })),
+  totalVotes: z.number().min(0),
+  invalidVotes: z.number().min(0),
   mecReferenceNumber: z.string().min(1, "MEC reference number is required"),
+  mecOfficialName: z.string().min(1, "MEC official name is required"),
   dateReceived: z.string().min(1, "Date received is required"),
-  notes: z.string().optional()
+  notes: z.string().optional(),
 });
 
 type MECResultFormData = z.infer<typeof mecResultSchema>;
@@ -60,14 +62,14 @@ export default function MECResults() {
   const form = useForm<MECResultFormData>({
     resolver: zodResolver(mecResultSchema),
     defaultValues: {
-      constituencyId: "",
-      pollingCenterId: "",
+      constituency: "",
+      pollingCenter: "",
       category: "president",
-      candidateVotes: [{ candidateName: "", partyName: "", votes: 0 }],
+      candidateVotes: [{ candidateId: "", candidateName: "", partyName: "", votes: 0 }],
       totalVotes: 0,
       invalidVotes: 0,
-      mecOfficialName: "",
       mecReferenceNumber: "",
+      mecOfficialName: "",
       dateReceived: "",
       notes: ""
     },
@@ -92,6 +94,11 @@ export default function MECResults() {
   // Fetch candidates for vote entry
   const { data: candidates } = useQuery({
     queryKey: ["/api/candidates"],
+  });
+
+  // Fetch political parties for dropdown
+  const { data: politicalParties } = useQuery({
+    queryKey: ["/api/political-parties"],
   });
 
   // Create MEC result mutation
@@ -124,7 +131,7 @@ export default function MECResults() {
 
   const addCandidateVote = () => {
     const currentVotes = form.getValues("candidateVotes");
-    form.setValue("candidateVotes", [...currentVotes, { candidateName: "", partyName: "", votes: 0 }]);
+    form.setValue("candidateVotes", [...currentVotes, { candidateId: "", candidateName: "", partyName: "", votes: 0 }]);
   };
 
   const removeCandidateVote = (index: number) => {
@@ -139,6 +146,28 @@ export default function MECResults() {
     const candidateVotes = form.watch("candidateVotes") || [];
     const total = candidateVotes.reduce((sum, vote) => sum + (vote.votes || 0), 0);
     form.setValue("totalVotes", total);
+  };
+
+  const handleCandidateSelection = (candidateId: string, index: number) => {
+    const selectedCandidate = (candidates as any[])?.find((c: any) => c.id === candidateId);
+    if (selectedCandidate) {
+      const currentVotes = form.getValues("candidateVotes");
+      const updatedVotes = [...currentVotes];
+      updatedVotes[index] = {
+        ...updatedVotes[index],
+        candidateId: selectedCandidate.id,
+        candidateName: selectedCandidate.name,
+        partyName: selectedCandidate.party,
+      };
+      form.setValue("candidateVotes", updatedVotes);
+      calculateTotalVotes(); // Recalculate total votes when candidate/party changes
+    }
+  };
+
+  const getFilteredCandidates = () => {
+    const selectedConstituency = form.watch("constituency");
+    if (!selectedConstituency) return candidates || [];
+    return (candidates as any[])?.filter((candidate: any) => candidate.constituency === selectedConstituency) || [];
   };
 
   const handleViewResult = (result: any) => {
@@ -194,27 +223,29 @@ export default function MECResults() {
               <DialogHeader>
                 <DialogTitle>Record MEC Official Result</DialogTitle>
               </DialogHeader>
-              
+
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   {/* Basic Information */}
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="constituencyId"
+                      name="constituency"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Constituency</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select constituency" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {constituencies?.map((constituency: any) => (
-                                <SelectItem key={constituency.id} value={constituency.id}>
-                                  {constituency.name}
+                              {Array.from(new Set(
+                                (pollingCenters as any[])?.map((center: any) => center.constituency) || []
+                              )).map((constituency: string) => (
+                                <SelectItem key={constituency} value={constituency}>
+                                  {constituency}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -226,24 +257,26 @@ export default function MECResults() {
 
                     <FormField
                       control={form.control}
-                      name="pollingCenterId"
+                      name="pollingCenter"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Polling Center</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select polling center" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {pollingCenters?.filter((center: any) => 
-                                !form.watch("constituencyId") || center.constituencyId === form.watch("constituencyId")
-                              ).map((center: any) => (
-                                <SelectItem key={center.id} value={center.id}>
-                                  {center.name}
-                                </SelectItem>
-                              ))}
+                              {(pollingCenters as any[])
+                                ?.filter((center: any) =>
+                                  !form.watch("constituency") || center.constituency === form.watch("constituency")
+                                )
+                                .map((center: any) => (
+                                  <SelectItem key={center.id} value={center.name}>
+                                    {center.code} - {center.name}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -331,27 +364,59 @@ export default function MECResults() {
                     </div>
 
                     <div className="space-y-3">
-                      {form.watch("candidateVotes")?.map((_, index) => (
+                      {form.watch("candidateVotes")?.map((vote, index) => (
                         <div key={index} className="grid grid-cols-4 gap-4 p-4 border rounded-lg">
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Candidate Name</label>
-                            <Input
-                              {...form.register(`candidateVotes.${index}.candidateName`)}
-                              placeholder="Candidate name"
-                            />
+                            <label className="text-sm font-medium text-gray-700">Candidate</label>
+                            <Select
+                              value={vote.candidateId}
+                              onValueChange={(value) => handleCandidateSelection(value, index)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select candidate" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getFilteredCandidates().map((candidate: any) => (
+                                  <SelectItem key={candidate.id} value={candidate.id}>
+                                    <div className="flex items-center gap-2">
+                                      <span>{candidate.name}</span>
+                                      <span className="text-xs text-gray-500">
+                                        ({(politicalParties as any[])?.find((p: any) =>
+                                          p.id === candidate.partyId || p.name === candidate.party
+                                        )?.abbreviation || candidate.party})
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-700">Party</label>
-                            <Input
-                              {...form.register(`candidateVotes.${index}.partyName`)}
-                              placeholder="Party name"
-                            />
+                            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border min-h-[2.5rem]">
+                              {vote.partyName && (
+                                <>
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{
+                                      backgroundColor: (politicalParties as any[])?.find((p: any) =>
+                                        p.name === vote.partyName
+                                      )?.color || '#6B7280'
+                                    }}
+                                  />
+                                  <span className="text-sm">{vote.partyName}</span>
+                                </>
+                              )}
+                              {!vote.partyName && (
+                                <span className="text-sm text-gray-400">Select candidate first</span>
+                              )}
+                            </div>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-700">Votes</label>
                             <Input
                               type="number"
-                              {...form.register(`candidateVotes.${index}.votes`, { 
+                              {...form.register(`candidateVotes.${index}.votes`, {
                                 valueAsNumber: true,
                                 onChange: calculateTotalVotes
                               })}
@@ -359,14 +424,15 @@ export default function MECResults() {
                             />
                           </div>
                           <div className="flex items-end">
-                            {form.watch("candidateVotes")?.length > 1 && (
+                            {form.watch("candidateVotes").length > 1 && (
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 onClick={() => removeCandidateVote(index)}
+                                className="text-red-600 hover:text-red-700"
                               >
-                                Remove
+                                <Minus className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
@@ -398,9 +464,9 @@ export default function MECResults() {
                         <FormItem>
                           <FormLabel>Invalid Votes</FormLabel>
                           <FormControl>
-                            <Input 
-                              {...field} 
-                              type="number" 
+                            <Input
+                              {...field}
+                              type="number"
                               onChange={(e) => field.onChange(Number(e.target.value))}
                             />
                           </FormControl>
@@ -522,7 +588,7 @@ export default function MECResults() {
                 />
               </div>
             </div>
-            
+
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by category" />
@@ -550,7 +616,7 @@ export default function MECResults() {
                 <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No MEC results found</h3>
                 <p className="text-gray-600">
-                  {searchTerm || categoryFilter !== "all" 
+                  {searchTerm || categoryFilter !== "all"
                     ? "No results match your current filters."
                     : "No MEC results have been recorded yet."
                   }
