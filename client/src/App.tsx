@@ -18,6 +18,7 @@ import ReviewFlagged from "@/pages/review-flagged";
 import Profile from "@/pages/profile";
 import { PoliticalPartiesPage } from "@/pages/political-parties";
 import DataManagement from "@/pages/data-management";
+import SubmitComplaints from "@/pages/submit-complaints";
 import Navigation from "@/components/navigation";
 import Sidebar from "@/components/sidebar";
 
@@ -39,6 +40,7 @@ function Router() {
                 <Switch>
                   <Route path="/" component={Dashboard} />
                   <Route path="/submit-results" component={SubmitResults} />
+                  <Route path="/submit-complaints" component={SubmitComplaints} />
                   <Route path="/verify-results" component={VerifyResults} />
                   <Route path="/reports" component={Reports} />
                   <Route path="/user-management" component={UserManagement} />

@@ -26,7 +26,7 @@ export const sessions = pgTable(
 );
 
 // User roles enum
-export const userRoleEnum = pgEnum('user_role', ['agent', 'supervisor', 'admin', 'reviewer']);
+export const userRoleEnum = pgEnum('user_role', ['agent', 'supervisor', 'admin', 'reviewer', 'president', 'mp']);
 
 // Result status enum  
 export const resultStatusEnum = pgEnum('result_status', ['pending', 'verified', 'flagged', 'rejected']);
@@ -36,6 +36,15 @@ export const submissionChannelEnum = pgEnum('submission_channel', ['whatsapp', '
 
 // Candidate category enum
 export const candidateCategoryEnum = pgEnum('candidate_category', ['president', 'mp', 'councilor']);
+
+// Complaint status enum
+export const complaintStatusEnum = pgEnum('complaint_status', ['submitted', 'under_review', 'resolved', 'dismissed']);
+
+// Complaint priority enum
+export const complaintPriorityEnum = pgEnum('complaint_priority', ['low', 'medium', 'high', 'urgent']);
+
+// Complaint category enum
+export const complaintCategoryEnum = pgEnum('complaint_category', ['voting_irregularity', 'result_dispute', 'procedural_violation', 'fraud_allegation', 'technical_issue', 'other']);
 
 // User storage table.
 export const users = pgTable("users", {
@@ -196,11 +205,44 @@ export const auditLogs = pgTable("audit_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Complaints table
+export const complaints = pgTable("complaints", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  submittedBy: varchar("submitted_by").references(() => users.id).notNull(),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  category: complaintCategoryEnum("category").notNull(),
+  priority: complaintPriorityEnum("priority").default('medium').notNull(),
+  status: complaintStatusEnum("status").default('submitted').notNull(),
+  
+  // Location references
+  pollingCenterId: varchar("polling_center_id").references(() => pollingCenters.id),
+  constituencyId: varchar("constituency_id").references(() => constituencies.id),
+  wardId: varchar("ward_id").references(() => wards.id),
+  
+  // Affected result reference (if complaint is about a specific result)
+  resultId: varchar("result_id").references(() => results.id),
+  
+  // Additional details
+  evidence: jsonb("evidence"), // Links to uploaded files/photos
+  contactInfo: jsonb("contact_info"), // Phone, email for follow-up
+  resolutionNotes: text("resolution_notes"),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+  resolvedAt: timestamp("resolved_at"),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   submittedResults: many(results, { relationName: "submittedBy" }),
   verifiedResults: many(results, { relationName: "verifiedBy" }),
   auditLogs: many(auditLogs),
+  submittedComplaints: many(complaints, { relationName: "submittedBy" }),
+  reviewedComplaints: many(complaints, { relationName: "reviewedBy" }),
 }));
 
 // New hierarchical relations
@@ -274,6 +316,35 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   user: one(users, {
     fields: [auditLogs.userId],
     references: [users.id],
+  }),
+}));
+
+export const complaintsRelations = relations(complaints, ({ one }) => ({
+  submitter: one(users, {
+    fields: [complaints.submittedBy],
+    references: [users.id],
+    relationName: "submittedBy",
+  }),
+  reviewer: one(users, {
+    fields: [complaints.reviewedBy],
+    references: [users.id],
+    relationName: "reviewedBy",
+  }),
+  pollingCenter: one(pollingCenters, {
+    fields: [complaints.pollingCenterId],
+    references: [pollingCenters.id],
+  }),
+  constituency: one(constituencies, {
+    fields: [complaints.constituencyId],
+    references: [constituencies.id],
+  }),
+  ward: one(wards, {
+    fields: [complaints.wardId],
+    references: [wards.id],
+  }),
+  result: one(results, {
+    fields: [complaints.resultId],
+    references: [results.id],
   }),
 }));
 
@@ -354,6 +425,14 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   createdAt: true,
 });
 
+export const insertComplaintSchema = createInsertSchema(complaints).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  reviewedAt: true,
+  resolvedAt: true,
+});
+
 // USSD Sessions table for tracking multi-step interactions
 export const ussdSessions = pgTable("ussd_sessions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -415,6 +494,8 @@ export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type UssdSession = typeof ussdSessions.$inferSelect;
 export type UssdProvider = typeof ussdProviders.$inferSelect;
 export type WhatsappProvider = typeof whatsappProviders.$inferSelect;
+export type Complaint = typeof complaints.$inferSelect;
+export type InsertComplaint = z.infer<typeof insertComplaintSchema>;
 
 // Extended types with relations
 export type ResultWithRelations = Result & {
@@ -424,7 +505,10 @@ export type ResultWithRelations = Result & {
   files: ResultFile[];
 };
 
-export type UserRole = 'agent' | 'supervisor' | 'admin' | 'reviewer';
+export type UserRole = 'agent' | 'supervisor' | 'admin' | 'reviewer' | 'president' | 'mp';
 export type ResultStatus = 'pending' | 'verified' | 'flagged' | 'rejected';
 export type SubmissionChannel = 'whatsapp' | 'portal' | 'ussd' | 'both';
 export type CandidateCategory = 'president' | 'mp' | 'councilor';
+export type ComplaintStatus = 'submitted' | 'under_review' | 'resolved' | 'dismissed';
+export type ComplaintPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type ComplaintCategory = 'voting_irregularity' | 'result_dispute' | 'procedural_violation' | 'fraud_allegation' | 'technical_issue' | 'other';
