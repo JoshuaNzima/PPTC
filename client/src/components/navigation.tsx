@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Vote } from "lucide-react";
 import { User } from "@shared/schema";
 import LanguageSelector from "@/components/language-selector";
+import { useLanguage } from "@/contexts/language-context";
 
 export default function Navigation() {
   const { user } = useAuth() as { user: User | null };
+  const { t } = useLanguage();
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -27,7 +29,7 @@ export default function Navigation() {
             {/* Real-time Status Indicator */}
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" data-testid="indicator-live-status"></div>
-              <span className="text-sm text-gray-600">Live</span>
+              <span className="text-sm text-gray-600">{t("common.active")}</span>
             </div>
             
             {/* User Menu */}
