@@ -291,15 +291,15 @@ export default function ResultSubmissionForm() {
                         {candidates && Array.isArray(candidates) && 
                          (candidates as any[])
                           .filter((c: any) => {
-                            // Filter by category
+                            // Filter by category first
                             if (c.category !== form.watch("category")) return false;
                             
-                            // For presidential elections, show all candidates (no constituency restriction)
+                            // For presidential elections, show all presidential candidates (no constituency restriction)
                             if (form.watch("category") === "president") return true;
                             
                             // For MP and councilor elections, filter by constituency
                             const selectedPollingCenter = (pollingCenters as any[])?.find((pc: any) => pc.id === form.watch("pollingCenterId"));
-                            if (!selectedPollingCenter) return true; // Show all if no polling center selected
+                            if (!selectedPollingCenter) return false; // Don't show any if no polling center selected for MP/councilor
                             
                             return c.constituency === selectedPollingCenter.constituency;
                           })

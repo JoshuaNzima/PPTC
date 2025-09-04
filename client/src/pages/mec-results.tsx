@@ -165,8 +165,21 @@ export default function MECResults() {
 
   const getFilteredCandidates = () => {
     const selectedConstituency = form.watch("constituency");
-    if (!selectedConstituency) return candidates || [];
-    return (candidates as any[])?.filter((candidate: any) => candidate.constituency === selectedConstituency) || [];
+    const selectedCategory = form.watch("category");
+    
+    if (!candidates) return [];
+    
+    // For presidential elections, show all candidates regardless of constituency
+    if (selectedCategory === "president") {
+      return (candidates as any[])?.filter((candidate: any) => candidate.category === "president") || [];
+    }
+    
+    // For MP and councilor elections, filter by constituency
+    if (!selectedConstituency) return (candidates as any[])?.filter((candidate: any) => candidate.category === selectedCategory) || [];
+    
+    return (candidates as any[])?.filter((candidate: any) => 
+      candidate.constituency === selectedConstituency && candidate.category === selectedCategory
+    ) || [];
   };
 
   const handleViewResult = (result: any) => {
