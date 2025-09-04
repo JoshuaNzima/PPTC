@@ -1,0 +1,370 @@
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { 
+  MessageSquare,
+  AlertTriangle,
+  Eye,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Filter,
+  Plus,
+  Search,
+  Calendar
+} from "lucide-react";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
+import ComplaintSubmissionForm from "@/components/complaint-submission-form";
+
+export default function Complaints() {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [selectedComplaint, setSelectedComplaint] = useState<any>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+
+  // Fetch complaints data
+  const { data: complaintsData, isLoading } = useQuery({
+    queryKey: ["/api/complaints"],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  // Mock data for demonstration - replace with actual API call
+  const complaints = complaintsData?.complaints || [];
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+      case 'under_review':
+        return <Badge variant="default"><Eye className="w-3 h-3 mr-1" />Under Review</Badge>;
+      case 'resolved':
+        return <Badge variant="outline" className="text-green-700 border-green-300"><CheckCircle className="w-3 h-3 mr-1" />Resolved</Badge>;
+      case 'dismissed':
+        return <Badge variant="destructive"><AlertCircle className="w-3 h-3 mr-1" />Dismissed</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'urgent':
+        return <Badge variant="destructive">Urgent</Badge>;
+      case 'high':
+        return <Badge variant="default">High</Badge>;
+      case 'medium':
+        return <Badge variant="secondary">Medium</Badge>;
+      case 'low':
+        return <Badge variant="outline">Low</Badge>;
+      default:
+        return <Badge variant="secondary">{priority}</Badge>;
+    }
+  };
+
+  // Filter complaints based on search and filters
+  const filteredComplaints = complaints.filter((complaint: any) => {
+    const matchesSearch = complaint.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         complaint.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || complaint.status === statusFilter;
+    const matchesPriority = priorityFilter === "all" || complaint.priority === priorityFilter;
+    return matchesSearch && matchesStatus && matchesPriority;
+  });
+
+  const handleViewComplaint = (complaint: any) => {
+    setSelectedComplaint(complaint);
+    setIsViewDialogOpen(true);
+  };
+
+  // Check if user can submit complaints (agents, supervisors, admins)
+  const canSubmitComplaint = ['agent', 'supervisor', 'admin'].includes((user as any)?.role);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">Loading complaints...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <MessageSquare className="h-8 w-8" />
+            Election Complaints System
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Monitor and manage election-related complaints and irregularities
+          </p>
+        </div>
+        {canSubmitComplaint && (
+          <Dialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Submit Complaint
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Submit New Complaint</DialogTitle>
+              </DialogHeader>
+              <ComplaintSubmissionForm onSuccess={() => {
+                setIsSubmitDialogOpen(false);
+                queryClient.invalidateQueries({ queryKey: ["/api/complaints"] });
+                toast({
+                  title: "Success",
+                  description: "Complaint submitted successfully",
+                });
+              }} />
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <MessageSquare className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Complaints</p>
+                <p className="text-2xl font-bold text-gray-900">{complaints.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Clock className="h-8 w-8 text-yellow-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Pending Review</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {complaints.filter((c: any) => c.status === 'pending' || c.status === 'under_review').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Resolved</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {complaints.filter((c: any) => c.status === 'resolved').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-8 w-8 text-red-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Urgent</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {complaints.filter((c: any) => c.priority === 'urgent').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters and Search */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filter Complaints
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-64">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search complaints..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="under_review">Under Review</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="dismissed">Dismissed</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priorities</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Complaints List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Complaints ({filteredComplaints.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {filteredComplaints.length === 0 ? (
+              <div className="text-center py-12">
+                <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No complaints found</h3>
+                <p className="text-gray-600">
+                  {searchTerm || statusFilter !== "all" || priorityFilter !== "all" 
+                    ? "No complaints match your current filters."
+                    : "No complaints have been submitted yet."
+                  }
+                </p>
+              </div>
+            ) : (
+              filteredComplaints.map((complaint: any, index: number) => (
+                <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-gray-900">{complaint.title}</h3>
+                        {getStatusBadge(complaint.status)}
+                        {getPriorityBadge(complaint.priority)}
+                      </div>
+                      <p className="text-gray-600 text-sm mb-2 line-clamp-2">
+                        {complaint.description}
+                      </p>
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {complaint.createdAt ? format(new Date(complaint.createdAt), 'MMM dd, yyyy HH:mm') : 'Unknown date'}
+                        </span>
+                        <span>Category: {complaint.category}</span>
+                        {complaint.constituencyName && (
+                          <span>Location: {complaint.constituencyName}</span>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewComplaint(complaint)}
+                      className="ml-4"
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* View Complaint Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Complaint Details
+            </DialogTitle>
+          </DialogHeader>
+          {selectedComplaint && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                {getStatusBadge(selectedComplaint.status)}
+                {getPriorityBadge(selectedComplaint.priority)}
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-lg">{selectedComplaint.title}</h3>
+                <p className="text-gray-600 mt-2">{selectedComplaint.description}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Category:</span>
+                  <p className="text-gray-600">{selectedComplaint.category}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Priority:</span>
+                  <p className="text-gray-600 capitalize">{selectedComplaint.priority}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Location:</span>
+                  <p className="text-gray-600">{selectedComplaint.constituencyName || 'Not specified'}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Submitted:</span>
+                  <p className="text-gray-600">
+                    {selectedComplaint.createdAt ? format(new Date(selectedComplaint.createdAt), 'MMM dd, yyyy HH:mm') : 'Unknown'}
+                  </p>
+                </div>
+              </div>
+
+              {selectedComplaint.evidenceFiles && selectedComplaint.evidenceFiles.length > 0 && (
+                <div>
+                  <span className="font-medium text-gray-700">Evidence Files:</span>
+                  <div className="mt-2 space-y-2">
+                    {selectedComplaint.evidenceFiles.map((file: any, index: number) => (
+                      <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                        <span className="text-sm">{file.name}</span>
+                        <Badge variant="outline" className="text-xs">{file.type}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

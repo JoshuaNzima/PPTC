@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LanguageProvider } from "@/contexts/language-context";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
@@ -18,9 +19,12 @@ import ReviewFlagged from "@/pages/review-flagged";
 import Profile from "@/pages/profile";
 import { PoliticalPartiesPage } from "@/pages/political-parties";
 import DataManagement from "@/pages/data-management";
-import SubmitComplaints from "@/pages/submit-complaints";
+import ComplaintsPage from "@/pages/complaints";
+import MECResultsPage from "@/pages/mec-results";
+import ResultsComparisonPage from "@/pages/results-comparison";
 import Navigation from "@/components/navigation";
 import Sidebar from "@/components/sidebar";
+import LanguageSelector from "@/components/language-selector";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -40,7 +44,9 @@ function Router() {
                 <Switch>
                   <Route path="/" component={Dashboard} />
                   <Route path="/submit-results" component={SubmitResults} />
-                  <Route path="/submit-complaints" component={SubmitComplaints} />
+                  <Route path="/complaints" component={ComplaintsPage} />
+                  <Route path="/mec-results" component={MECResultsPage} />
+                  <Route path="/results-comparison" component={ResultsComparisonPage} />
                   <Route path="/verify-results" component={VerifyResults} />
                   <Route path="/reports" component={Reports} />
                   <Route path="/user-management" component={UserManagement} />
@@ -65,10 +71,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <LanguageProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

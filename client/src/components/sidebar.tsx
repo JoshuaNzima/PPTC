@@ -13,17 +13,20 @@ import {
   Shield,
   Database,
   MessageSquare,
-  MessageCircle
+  MessageCircle,
+  Building2,
+  GitCompare
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: BarChart3, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
   { name: "Submit Results", href: "/submit-results", icon: Plus, roles: ["agent", "supervisor", "admin"] },
-  { name: "Submit Complaints", href: "/submit-complaints", icon: MessageSquare, roles: ["agent", "supervisor", "admin"] },
+  { name: "MEC Results", href: "/mec-results", icon: Building2, roles: ["admin", "supervisor", "reviewer", "president", "mp"] },
+  { name: "Results Comparison", href: "/results-comparison", icon: GitCompare, roles: ["admin", "supervisor", "reviewer", "president", "mp"] },
+  { name: "Complaints", href: "/complaints", icon: MessageSquare, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
   { name: "Verify Results", href: "/verify-results", icon: CheckCircle, roles: ["supervisor", "admin"] },
   { name: "Review Flagged", href: "/review-flagged", icon: AlertTriangle, roles: ["reviewer", "admin"] },
-  { name: "Review Complaints", href: "/review-complaints", icon: MessageCircle, roles: ["supervisor", "admin", "reviewer"] },
   { name: "Reports", href: "/reports", icon: FileText, roles: ["supervisor", "admin", "reviewer", "president", "mp"] },
   { name: "User Management", href: "/user-management", icon: Users, roles: ["admin"] },
   { name: "Political Parties", href: "/political-parties", icon: Shield, roles: ["admin", "supervisor"] },

@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Vote } from "lucide-react";
 import { User } from "@shared/schema";
+import LanguageSelector from "@/components/language-selector";
 
 export default function Navigation() {
   const { user } = useAuth() as { user: User | null };
@@ -20,6 +21,9 @@ export default function Navigation() {
           </div>
           
           <div className="flex items-center space-x-4">
+            {/* Language Selector */}
+            <LanguageSelector />
+            
             {/* Real-time Status Indicator */}
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" data-testid="indicator-live-status"></div>
