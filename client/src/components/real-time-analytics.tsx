@@ -92,7 +92,7 @@ export function RealTimeAnalytics() {
     );
   }
 
-  const stats = currentAnalytics?.overview || {};
+  const stats = (currentAnalytics as any)?.overview || {};
 
   return (
     <div className="space-y-6" data-testid="real-time-analytics">

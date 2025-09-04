@@ -117,13 +117,13 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-4 bg-red-50 rounded-lg">
                     <div className="text-2xl font-bold text-red-700">
-                      {complaintsData?.total || 0}
+                      {(complaintsData as any)?.total || 0}
                     </div>
                     <div className="text-sm text-red-600">Total Complaints</div>
                   </div>
                   <div className="text-center p-4 bg-yellow-50 rounded-lg">
                     <div className="text-2xl font-bold text-yellow-700">
-                      {complaintsData?.pending || 0}
+                      {(complaintsData as any)?.pending || 0}
                     </div>
                     <div className="text-sm text-yellow-600">Under Review</div>
                   </div>
@@ -132,13 +132,13 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-4 bg-green-50 rounded-lg">
                     <div className="text-2xl font-bold text-green-700">
-                      {complaintsData?.resolved || 0}
+                      {(complaintsData as any)?.resolved || 0}
                     </div>
                     <div className="text-sm text-green-600">Resolved</div>
                   </div>
                   <div className="text-center p-4 bg-purple-50 rounded-lg">
                     <div className="text-2xl font-bold text-purple-700">
-                      {complaintsData?.urgent || 0}
+                      {(complaintsData as any)?.urgent || 0}
                     </div>
                     <div className="text-sm text-purple-600">Urgent</div>
                   </div>
@@ -148,8 +148,8 @@ export default function Dashboard() {
                 <div className="space-y-2">
                   <h4 className="font-medium text-gray-900">Recent Complaints</h4>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {complaintsData?.recent && complaintsData.recent.length > 0 ? (
-                      complaintsData.recent.slice(0, 5).map((complaint: any, index: number) => (
+                    {(complaintsData as any)?.recent && (complaintsData as any).recent.length > 0 ? (
+                      (complaintsData as any).recent.slice(0, 5).map((complaint: any, index: number) => (
                         <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
                           <div className="flex-1 truncate">
                             <div className="font-medium truncate">{complaint.title}</div>
