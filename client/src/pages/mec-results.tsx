@@ -78,7 +78,6 @@ export default function MECResults() {
   // Fetch MEC results
   const { data: mecResults, isLoading } = useQuery({
     queryKey: ["/api/mec-results"],
-    refetchInterval: 30000,
   });
 
   // Fetch constituencies for dropdown
