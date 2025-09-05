@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ImportExportControls from "@/components/import-export-controls";
-import HierarchicalLocationView from "@/components/hierarchical-location-view";
+import { ImportExportControls } from '@/components/import-export-controls';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight, MapPin, Users, Building } from 'lucide-react';
@@ -107,7 +106,7 @@ function HierarchicalLocationView() {
                 </div>
               </CardHeader>
             </CollapsibleTrigger>
-
+            
             <CollapsibleContent>
               <CardContent className="pt-0">
                 {constituency.wards && constituency.wards.length > 0 ? (
@@ -143,7 +142,7 @@ function HierarchicalLocationView() {
                               </div>
                             </CardHeader>
                           </CollapsibleTrigger>
-
+                          
                           <CollapsibleContent>
                             <CardContent className="pt-0">
                               {ward.centres && ward.centres.length > 0 ? (
