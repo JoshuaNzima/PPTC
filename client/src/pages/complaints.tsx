@@ -38,10 +38,11 @@ export default function Complaints() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
 
-  // Fetch complaints data
+  // Fetch complaints data - disable auto-refresh when forms are open
   const { data: complaintsData, isLoading } = useQuery({
     queryKey: ["/api/complaints"],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: (isSubmitDialogOpen || isEscalateDialogOpen || isViewDialogOpen) ? false : 30000, // Disable auto-refresh when forms are open
+    refetchIntervalInBackground: false,
   });
 
   // Mock data for demonstration - replace with actual API call
@@ -344,15 +345,30 @@ export default function Complaints() {
                         )}
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewComplaint(complaint)}
-                      className="ml-4"
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
+                    <div className="ml-4 flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewComplaint(complaint)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      {canEscalateComplaint && canComplaintBeEscalated(complaint.status) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedComplaint(complaint);
+                            setIsEscalateDialogOpen(true);
+                          }}
+                          className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                        >
+                          <Upload className="h-4 w-4 mr-1" />
+                          Escalate
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))

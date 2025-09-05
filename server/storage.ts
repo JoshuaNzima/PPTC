@@ -9,6 +9,7 @@ import {
   resultFiles,
   auditLogs,
   politicalParties,
+  complaints,
   ussdSessions,
   ussdProviders,
   whatsappProviders,
