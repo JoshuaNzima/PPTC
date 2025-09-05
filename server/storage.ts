@@ -469,6 +469,25 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
+  async getResultsBySource(source: 'internal' | 'mec'): Promise<ResultWithRelations[]> {
+    return await db
+      .select()
+      .from(results)
+      .leftJoin(pollingCenters, eq(results.pollingCenterId, pollingCenters.id))
+      .leftJoin(users, eq(results.submittedBy, users.id))
+      .where(eq(results.source, source))
+      .orderBy(desc(results.createdAt))
+      .then(rows => 
+        rows.map(row => ({
+          ...row.results,
+          pollingCenter: row.polling_centers!,
+          submitter: row.users!,
+          verifier: undefined,
+          files: []
+        }))
+      );
+  }
+
   async getResultsByPollingCenter(pollingCenterId: string): Promise<ResultWithRelations[]> {
     return await db
       .select()
@@ -630,7 +649,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(resultFiles).where(eq(resultFiles.resultId, resultId));
   }
 
-  // Statistics
+  // Statistics - for internal results only (dashboard analytics)
   async getStats(): Promise<{
     totalCenters: number;
     resultsReceived: number;
@@ -644,19 +663,21 @@ export class DatabaseStorage implements IStorage {
       .from(pollingCenters)
       .where(eq(pollingCenters.isActive, true));
 
+    // Only count internal results for dashboard stats
     const [resultsReceivedResult] = await db
       .select({ count: count() })
-      .from(results);
+      .from(results)
+      .where(eq(results.source, 'internal'));
 
     const [verifiedResult] = await db
       .select({ count: count() })
       .from(results)
-      .where(eq(results.status, 'verified'));
+      .where(and(eq(results.status, 'verified'), eq(results.source, 'internal')));
 
     const [flaggedResult] = await db
       .select({ count: count() })
       .from(results)
-      .where(eq(results.status, 'flagged'));
+      .where(and(eq(results.status, 'flagged'), eq(results.source, 'internal')));
 
     const totalCenters = totalCentersResult.count;
     const resultsReceived = resultsReceivedResult.count;
@@ -790,7 +811,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Party performance data for dashboard charts
-  async getPartyPerformance(category?: CandidateCategory): Promise<Array<{
+  async getPartyPerformance(category?: CandidateCategory, source: 'internal' | 'mec' = 'internal'): Promise<Array<{
     party: string;
     totalVotes: number;
     percentage: number;
@@ -803,11 +824,11 @@ export class DatabaseStorage implements IStorage {
     };
   }>> {
     try {
-      // Get all verified results
+      // Get results filtered by source and status
       const verifiedResults = await db
         .select()
         .from(results)
-        .where(eq(results.status, 'verified'));
+        .where(and(eq(results.status, 'verified'), eq(results.source, source)));
 
       // Get all candidates to match parties with categories
       const allCandidates = await db.select().from(candidates);

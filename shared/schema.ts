@@ -46,6 +46,9 @@ export const complaintPriorityEnum = pgEnum('complaint_priority', ['low', 'mediu
 // Complaint category enum
 export const complaintCategoryEnum = pgEnum('complaint_category', ['voting_irregularity', 'result_dispute', 'procedural_violation', 'fraud_allegation', 'technical_issue', 'other']);
 
+// Result source enum - to differentiate between internal vs MEC results
+export const resultSourceEnum = pgEnum('result_source', ['internal', 'mec']);
+
 // User storage table.
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -170,6 +173,7 @@ export const results = pgTable("results", {
   invalidVotes: integer("invalid_votes").notNull(),
   totalVotes: integer("total_votes").notNull(),
   status: resultStatusEnum("status").default('pending').notNull(),
+  source: resultSourceEnum("source").default('internal').notNull(),
   submissionChannel: submissionChannelEnum("submission_channel").notNull(),
   comments: text("comments"),
   flaggedReason: text("flagged_reason"),

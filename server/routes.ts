@@ -645,8 +645,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get party performance data
   app.get("/api/party-performance", isAuthenticated, async (req, res) => {
     try {
-      const { category } = req.query;
-      const partyPerformance = await storage.getPartyPerformance(category as any);
+      const { category, source } = req.query;
+      // Default to internal results for dashboard display
+      const resultSource = source as 'internal' | 'mec' | undefined || 'internal';
+      const partyPerformance = await storage.getPartyPerformance(category as any, resultSource);
       res.json(partyPerformance);
     } catch (error) {
       console.error("Error fetching party performance:", error);
@@ -1116,8 +1118,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // MEC Results endpoints
   app.get("/api/mec-results", isAuthenticated, async (req, res) => {
     try {
-      // Get all verified results (MEC results are typically verified results)
-      const results = await storage.getResultsByStatus('verified');
+      // Get all MEC results (external results from MEC)
+      const results = await storage.getResultsBySource('mec');
       
       // Transform results for MEC results display
       const mecResults = results.map(result => ({
@@ -1216,6 +1218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invalidVotes,
         totalVotes,
         status: 'verified', // MEC results are official and verified
+        source: 'mec', // Mark as external MEC result
         submissionChannel: 'portal',
         comments: notes || `Official MEC Result - ${mecReferenceNumber}`,
       };
