@@ -9,7 +9,7 @@ import { storage } from "./storage";
 import importExportRoutes from "./routes/importExport";
 import { setupAuth, isAuthenticated, hashPassword, validateRegister, validateLogin } from "./auth";
 import passport from "passport";
-import { insertResultSchema, insertPollingCenterSchema, insertCandidateSchema, insertPoliticalPartySchema } from "@shared/schema";
+import { insertResultSchema, insertPollingCenterSchema, insertCandidateSchema, insertPoliticalPartySchema, insertComplaintSchema } from "@shared/schema";
 import { seedDatabase } from "./seed";
 
 // Configure multer for file uploads
@@ -2467,6 +2467,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching complaints summary:", error);
       res.status(500).json({ message: "Failed to fetch complaints summary" });
+    }
+  });
+
+  app.post("/api/complaints", isAuthenticated, upload.array('files', 10), async (req: any, res) => {
+    try {
+      const validatedData = insertComplaintSchema.parse({
+        ...req.body,
+        submittedBy: req.user.id,
+        contactInfo: req.body.contactInfo ? JSON.parse(req.body.contactInfo) : null,
+        // Handle optional fields properly - convert empty strings to null
+        pollingCenterId: req.body.pollingCenterId && req.body.pollingCenterId.trim() !== "" ? req.body.pollingCenterId : null,
+        constituencyId: req.body.constituencyId && req.body.constituencyId.trim() !== "" ? req.body.constituencyId : null,
+        wardId: req.body.wardId && req.body.wardId.trim() !== "" ? req.body.wardId : null,
+        resultId: req.body.resultId && req.body.resultId.trim() !== "" ? req.body.resultId : null,
+        priority: req.body.priority || 'medium',
+      });
+
+      const complaint = await storage.createComplaint(validatedData);
+
+      // Handle file uploads
+      if (req.files && req.files.length > 0) {
+        const evidenceFiles = [];
+        for (const file of req.files) {
+          evidenceFiles.push({
+            fileName: file.originalname,
+            filePath: file.path,
+            fileSize: file.size,
+            mimeType: file.mimetype,
+            uploadedAt: new Date().toISOString(),
+          });
+        }
+        
+        // Update complaint with evidence
+        await storage.updateComplaint(complaint.id, {
+          evidence: evidenceFiles,
+        });
+      }
+
+      // Log audit
+      await storage.createAuditLog({
+        userId: req.user.id,
+        action: "CREATE",
+        entityType: "complaint",
+        entityId: complaint.id,
+        newValues: complaint,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+
+      // Broadcast real-time updates
+      broadcastUpdate("NEW_COMPLAINT", complaint);
+
+      res.status(201).json(complaint);
+    } catch (error) {
+      console.error("Error creating complaint:", error);
+      res.status(400).json({ message: "Failed to create complaint" });
     }
   });
 

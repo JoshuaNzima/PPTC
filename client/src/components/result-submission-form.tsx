@@ -26,7 +26,7 @@ const formSchema = z.object({
   mpVotes: z.record(z.coerce.number().min(0)).optional(),
   councilorVotes: z.record(z.coerce.number().min(0)).optional(),
   invalidVotes: z.coerce.number().min(0, "Invalid votes must be non-negative"),
-  comments: z.string().optional(),
+  comments: z.string().optional().transform(val => val === "" ? undefined : val),
 });
 
 type FormData = z.infer<typeof formSchema>;

@@ -39,13 +39,17 @@ const formSchema = z.object({
   title: z.string().min(10, "Title must be at least 10 characters"),
   description: z.string().min(50, "Description must be at least 50 characters"),
   category: z.enum(["voting_irregularity", "result_dispute", "procedural_violation", "fraud_allegation", "technical_issue", "other"]),
-  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
-  pollingCenterId: z.string().optional(),
-  constituencyId: z.string().optional(),
-  wardId: z.string().optional(),
-  resultId: z.string().optional(),
-  contactPhone: z.string().min(10, "Phone number is required").optional(),
-  contactEmail: z.string().email("Invalid email format").optional(),
+  priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
+  pollingCenterId: z.string().optional().transform(val => val === "" ? undefined : val),
+  constituencyId: z.string().optional().transform(val => val === "" ? undefined : val),
+  wardId: z.string().optional().transform(val => val === "" ? undefined : val),
+  resultId: z.string().optional().transform(val => val === "" ? undefined : val),
+  contactPhone: z.string().optional().refine(val => !val || val.length >= 10, {
+    message: "Phone number must be at least 10 characters"
+  }),
+  contactEmail: z.string().optional().refine(val => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+    message: "Invalid email format"
+  }),
 });
 
 type FormData = z.infer<typeof formSchema>;
