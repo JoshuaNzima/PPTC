@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,7 +17,8 @@ import {
   Filter,
   Plus,
   Search,
-  Calendar
+  Calendar,
+  Upload
 } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,8 @@ export default function Complaints() {
   const [selectedComplaint, setSelectedComplaint] = useState<any>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
+  const [isEscalateDialogOpen, setIsEscalateDialogOpen] = useState(false);
+  const [escalationReason, setEscalationReason] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -45,14 +49,20 @@ export default function Complaints() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending':
-        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+      case 'submitted':
+        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Submitted</Badge>;
       case 'under_review':
         return <Badge variant="default"><Eye className="w-3 h-3 mr-1" />Under Review</Badge>;
       case 'resolved':
         return <Badge variant="outline" className="text-green-700 border-green-300"><CheckCircle className="w-3 h-3 mr-1" />Resolved</Badge>;
       case 'dismissed':
         return <Badge variant="destructive"><AlertCircle className="w-3 h-3 mr-1" />Dismissed</Badge>;
+      case 'escalated_to_mec':
+        return <Badge variant="default" className="text-blue-700 border-blue-300"><AlertTriangle className="w-3 h-3 mr-1" />Escalated to MEC</Badge>;
+      case 'mec_investigating':
+        return <Badge variant="default" className="text-purple-700 border-purple-300"><Search className="w-3 h-3 mr-1" />MEC Investigating</Badge>;
+      case 'mec_resolved':
+        return <Badge variant="outline" className="text-green-700 border-green-300"><CheckCircle className="w-3 h-3 mr-1" />MEC Resolved</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -87,8 +97,53 @@ export default function Complaints() {
     setIsViewDialogOpen(true);
   };
 
+  // Escalate complaint mutation
+  const escalateComplaintMutation = useMutation({
+    mutationFn: async ({ complaintId, reason }: { complaintId: string; reason: string }) => {
+      const response = await fetch(`/api/complaints/${complaintId}/escalate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ escalationReason: reason }),
+      });
+      if (!response.ok) throw new Error('Failed to escalate complaint');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/complaints"] });
+      toast({
+        title: "Success",
+        description: "Complaint escalated to MEC successfully",
+      });
+      setIsEscalateDialogOpen(false);
+      setEscalationReason("");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to escalate complaint",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEscalateComplaint = () => {
+    if (!selectedComplaint || !escalationReason.trim()) return;
+    escalateComplaintMutation.mutate({
+      complaintId: selectedComplaint.id,
+      reason: escalationReason,
+    });
+  };
+
   // Check if user can submit complaints (agents, supervisors, admins)
   const canSubmitComplaint = ['agent', 'supervisor', 'admin'].includes((user as any)?.role);
+  
+  // Check if user can escalate complaints (supervisors, admins)
+  const canEscalateComplaint = ['supervisor', 'admin'].includes((user as any)?.role);
+  
+  // Check if complaint can be escalated (not already escalated and not resolved)
+  const canComplaintBeEscalated = (status: string) => {
+    return !['escalated_to_mec', 'mec_investigating', 'mec_resolved', 'resolved'].includes(status);
+  };
 
   if (isLoading) {
     return (
@@ -361,8 +416,93 @@ export default function Complaints() {
                   </div>
                 </div>
               )}
+
+              {/* Escalation Information */}
+              {selectedComplaint.escalatedToMec && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">MEC Escalation Details</h4>
+                  <div className="space-y-2 text-sm text-blue-800">
+                    {selectedComplaint.escalationReason && (
+                      <div>
+                        <span className="font-medium">Reason:</span> {selectedComplaint.escalationReason}
+                      </div>
+                    )}
+                    {selectedComplaint.mecReferenceNumber && (
+                      <div>
+                        <span className="font-medium">MEC Reference:</span> {selectedComplaint.mecReferenceNumber}
+                      </div>
+                    )}
+                    {selectedComplaint.escalatedAt && (
+                      <div>
+                        <span className="font-medium">Escalated:</span> {format(new Date(selectedComplaint.escalatedAt), 'MMM dd, yyyy HH:mm')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              {canEscalateComplaint && selectedComplaint && canComplaintBeEscalated(selectedComplaint.status) && (
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button
+                    onClick={() => setIsEscalateDialogOpen(true)}
+                    variant="outline"
+                    className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Escalate to MEC
+                  </Button>
+                </div>
+              )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Escalate Complaint Dialog */}
+      <Dialog open={isEscalateDialogOpen} onOpenChange={setIsEscalateDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Escalate to MEC
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              This will escalate the complaint to the Malawi Electoral Commission (MEC) for further investigation.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Escalation Reason <span className="text-red-500">*</span>
+              </label>
+              <Textarea
+                value={escalationReason}
+                onChange={(e) => setEscalationReason(e.target.value)}
+                placeholder="Please provide a detailed reason for escalating this complaint to MEC..."
+                rows={4}
+                className="w-full"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsEscalateDialogOpen(false);
+                  setEscalationReason("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleEscalateComplaint}
+                disabled={!escalationReason.trim() || escalateComplaintMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {escalateComplaintMutation.isPending ? "Escalating..." : "Escalate to MEC"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

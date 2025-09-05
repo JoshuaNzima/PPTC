@@ -1182,8 +1182,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } = req.body;
 
       // Find the polling center ID
-      const pollingCenters = await storage.getPollingCenters();
-      const targetPollingCenter = pollingCenters.find(pc => pc.name === pollingCenter);
+      const pollingCentersResult = await storage.getPollingCenters();
+      const targetPollingCenter = pollingCentersResult.data.find(pc => pc.name === pollingCenter);
       
       if (!targetPollingCenter) {
         return res.status(400).json({ message: "Polling center not found" });
@@ -2440,6 +2440,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.sendFile(filePath);
     } else {
       res.status(404).json({ message: "File not found" });
+    }
+  });
+
+  // Complaints endpoints
+  app.get("/api/complaints", isAuthenticated, async (req, res) => {
+    try {
+      const complaints = await storage.getComplaints();
+      res.json({ complaints });
+    } catch (error) {
+      console.error("Error fetching complaints:", error);
+      res.status(500).json({ message: "Failed to fetch complaints" });
+    }
+  });
+
+  app.get("/api/complaints/summary", isAuthenticated, async (req, res) => {
+    try {
+      const complaints = await storage.getComplaints();
+      const summary = {
+        total: complaints.length,
+        pending: complaints.filter(c => c.status === 'submitted' || c.status === 'under_review').length,
+        escalated: complaints.filter(c => c.status === 'escalated_to_mec' || c.status === 'mec_investigating').length,
+        resolved: complaints.filter(c => c.status === 'resolved' || c.status === 'mec_resolved').length,
+      };
+      res.json(summary);
+    } catch (error) {
+      console.error("Error fetching complaints summary:", error);
+      res.status(500).json({ message: "Failed to fetch complaints summary" });
+    }
+  });
+
+  app.post("/api/complaints/:id/escalate", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = req.user;
+      
+      // Only supervisors and admins can escalate complaints
+      if (user?.role !== 'supervisor' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Supervisor or admin role required." });
+      }
+
+      const complaintId = req.params.id;
+      const { escalationReason } = req.body;
+
+      if (!escalationReason || !escalationReason.trim()) {
+        return res.status(400).json({ message: "Escalation reason is required" });
+      }
+
+      // Update complaint with escalation details
+      const updatedComplaint = await storage.escalateComplaint(complaintId, {
+        escalatedBy: user.id,
+        escalationReason: escalationReason.trim(),
+        escalatedAt: new Date(),
+        status: 'escalated_to_mec',
+        mecReferenceNumber: `MEC-COMP-${Date.now()}`,
+      });
+
+      // Log audit
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "ESCALATE_COMPLAINT",
+        entityType: "complaint",
+        entityId: complaintId,
+        newValues: { escalated: true, escalationReason },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+
+      res.json({ 
+        message: "Complaint escalated to MEC successfully",
+        complaint: updatedComplaint 
+      });
+    } catch (error) {
+      console.error("Error escalating complaint:", error);
+      res.status(500).json({ message: "Failed to escalate complaint" });
     }
   });
 

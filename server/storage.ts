@@ -33,6 +33,7 @@ import {
   type InsertResultFile,
   type AuditLog,
   type InsertAuditLog,
+  type Complaint,
   type UssdSession,
   type UssdProvider,
   type WhatsappProvider,
@@ -154,6 +155,16 @@ export interface IStorage {
   // Audit operations
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   getAuditLogs(limit?: number): Promise<AuditLog[]>;
+
+  // Complaint operations
+  getComplaints(): Promise<Complaint[]>;
+  escalateComplaint(complaintId: string, escalationData: {
+    escalatedBy: string;
+    escalationReason: string;
+    escalatedAt: Date;
+    status: string;
+    mecReferenceNumber: string;
+  }): Promise<Complaint>;
 
   // Admin database management operations
   deactivateUser(userId: string): Promise<User>;
@@ -1322,6 +1333,38 @@ export class DatabaseStorage implements IStorage {
         files: true
       }
     });
+  }
+
+  // Complaint operations
+  async getComplaints(): Promise<Complaint[]> {
+    return await db
+      .select()
+      .from(complaints)
+      .orderBy(desc(complaints.createdAt));
+  }
+
+  async escalateComplaint(complaintId: string, escalationData: {
+    escalatedBy: string;
+    escalationReason: string;
+    escalatedAt: Date;
+    status: string;
+    mecReferenceNumber: string;
+  }): Promise<Complaint> {
+    const [updatedComplaint] = await db
+      .update(complaints)
+      .set({
+        escalatedToMec: true,
+        escalatedBy: escalationData.escalatedBy,
+        escalatedAt: escalationData.escalatedAt,
+        escalationReason: escalationData.escalationReason,
+        mecReferenceNumber: escalationData.mecReferenceNumber,
+        status: escalationData.status as any,
+        updatedAt: new Date(),
+      })
+      .where(eq(complaints.id, complaintId))
+      .returning();
+    
+    return updatedComplaint;
   }
 }
 
