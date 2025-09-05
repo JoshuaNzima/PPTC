@@ -38,7 +38,7 @@ export const submissionChannelEnum = pgEnum('submission_channel', ['whatsapp', '
 export const candidateCategoryEnum = pgEnum('candidate_category', ['president', 'mp', 'councilor']);
 
 // Complaint status enum
-export const complaintStatusEnum = pgEnum('complaint_status', ['submitted', 'under_review', 'resolved', 'dismissed']);
+export const complaintStatusEnum = pgEnum('complaint_status', ['submitted', 'under_review', 'resolved', 'dismissed', 'escalated_to_mec', 'mec_investigating', 'mec_resolved']);
 
 // Complaint priority enum
 export const complaintPriorityEnum = pgEnum('complaint_priority', ['low', 'medium', 'high', 'urgent']);
@@ -223,6 +223,17 @@ export const complaints = pgTable("complaints", {
   
   // Affected result reference (if complaint is about a specific result)
   resultId: varchar("result_id").references(() => results.id),
+  
+  // Escalation fields
+  escalatedToMec: boolean("escalated_to_mec").default(false).notNull(),
+  escalatedBy: varchar("escalated_by").references(() => users.id),
+  escalatedAt: timestamp("escalated_at"),
+  escalationReason: text("escalation_reason"),
+  mecReferenceNumber: varchar("mec_reference_number"),
+  mecContactPerson: varchar("mec_contact_person"),
+  mecFollowUpDate: timestamp("mec_follow_up_date"),
+  mecResponse: text("mec_response"),
+  mecResolutionDate: timestamp("mec_resolution_date"),
   
   // Additional details
   evidence: jsonb("evidence"), // Links to uploaded files/photos

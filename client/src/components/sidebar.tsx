@@ -18,28 +18,31 @@ import {
   GitCompare
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/language-context";
 
-const navigation = [
-  { name: "Dashboard", href: "/", icon: BarChart3, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
-  { name: "Submit Results", href: "/submit-results", icon: Plus, roles: ["agent", "supervisor", "admin"] },
-  { name: "MEC Results", href: "/mec-results", icon: Building2, roles: ["admin", "supervisor", "reviewer", "president", "mp"] },
-  { name: "Results Comparison", href: "/results-comparison", icon: GitCompare, roles: ["admin", "supervisor", "reviewer", "president", "mp"] },
-  { name: "Complaints", href: "/complaints", icon: MessageSquare, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
-  { name: "Verify Results", href: "/verify-results", icon: CheckCircle, roles: ["supervisor", "admin"] },
-  { name: "Review Flagged", href: "/review-flagged", icon: AlertTriangle, roles: ["reviewer", "admin"] },
-  { name: "Reports", href: "/reports", icon: FileText, roles: ["supervisor", "admin", "reviewer", "president", "mp"] },
-  { name: "User Management", href: "/user-management", icon: Users, roles: ["admin"] },
-  { name: "Political Parties", href: "/political-parties", icon: Shield, roles: ["admin", "supervisor"] },
-  { name: "Data Management", href: "/data-management", icon: Database, roles: ["admin"] },
-  { name: "Admin Management", href: "/admin-management", icon: Settings, roles: ["admin"] },
-  { name: "Audit Trail", href: "/audit-trail", icon: History, roles: ["supervisor", "admin", "reviewer"] },
-  { name: "Profile", href: "/profile", icon: User, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
+const getNavigation = (t: (key: string) => string) => [
+  { name: t("nav.dashboard"), href: "/", icon: BarChart3, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
+  { name: t("nav.submit_results"), href: "/submit-results", icon: Plus, roles: ["agent", "supervisor", "admin"] },
+  { name: t("nav.mec_results"), href: "/mec-results", icon: Building2, roles: ["admin", "supervisor", "reviewer", "president", "mp"] },
+  { name: t("nav.results_comparison"), href: "/results-comparison", icon: GitCompare, roles: ["admin", "supervisor", "reviewer", "president", "mp"] },
+  { name: t("nav.complaints"), href: "/complaints", icon: MessageSquare, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
+  { name: t("nav.verify_results"), href: "/verify-results", icon: CheckCircle, roles: ["supervisor", "admin"] },
+  { name: t("nav.review_flagged"), href: "/review-flagged", icon: AlertTriangle, roles: ["reviewer", "admin"] },
+  { name: t("nav.reports"), href: "/reports", icon: FileText, roles: ["supervisor", "admin", "reviewer", "president", "mp"] },
+  { name: t("nav.user_management"), href: "/user-management", icon: Users, roles: ["admin"] },
+  { name: t("nav.political_parties"), href: "/political-parties", icon: Shield, roles: ["admin", "supervisor"] },
+  { name: t("nav.data_management"), href: "/data-management", icon: Database, roles: ["admin"] },
+  { name: t("nav.admin_management"), href: "/admin-management", icon: Settings, roles: ["admin"] },
+  { name: t("nav.audit_trail"), href: "/audit-trail", icon: History, roles: ["supervisor", "admin", "reviewer"] },
+  { name: t("nav.profile"), href: "/profile", icon: User, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
 ];
 
 export default function Sidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
+  const { t } = useLanguage();
 
+  const navigation = getNavigation(t);
   const filteredNavigation = navigation.filter(item => 
     item.roles.includes((user as any)?.role || "agent")
   );

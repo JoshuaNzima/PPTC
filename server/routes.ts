@@ -1113,6 +1113,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // MEC Results endpoints
+  app.get("/api/mec-results", isAuthenticated, async (req, res) => {
+    try {
+      // Get all verified results (MEC results are typically verified results)
+      const results = await storage.getResultsByStatus('verified');
+      
+      // Transform results for MEC results display
+      const mecResults = results.map(result => ({
+        id: result.id,
+        constituency: result.pollingCenter?.constituency || '',
+        pollingCenter: result.pollingCenter?.name || '',
+        category: result.category,
+        totalVotes: result.totalVotes,
+        invalidVotes: result.invalidVotes,
+        candidateVotes: [
+          ...(result.presidentialVotes ? Object.entries(result.presidentialVotes).map(([candidateId, votes]) => ({
+            candidateId,
+            votes: Number(votes),
+            category: 'president'
+          })) : []),
+          ...(result.mpVotes ? Object.entries(result.mpVotes).map(([candidateId, votes]) => ({
+            candidateId,
+            votes: Number(votes),
+            category: 'mp'
+          })) : []),
+          ...(result.councilorVotes ? Object.entries(result.councilorVotes).map(([candidateId, votes]) => ({
+            candidateId,
+            votes: Number(votes),
+            category: 'councilor'
+          })) : [])
+        ],
+        mecReferenceNumber: `MEC-${result.id.slice(-8)}`,
+        mecOfficialName: result.verifiedBy || 'MEC Official',
+        dateReceived: result.verifiedAt || result.createdAt,
+        submittedBy: result.submitter?.firstName + ' ' + result.submitter?.lastName,
+        createdAt: result.createdAt,
+        updatedAt: result.updatedAt
+      }));
+      
+      res.json({ mecResults });
+    } catch (error) {
+      console.error("Error fetching MEC results:", error);
+      res.status(500).json({ message: "Failed to fetch MEC results" });
+    }
+  });
+
+  app.post("/api/mec-results", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = req.user;
+      
+      // Only allow MEC officials (admin/reviewer) to create official MEC results
+      if (user?.role !== 'admin' && user?.role !== 'reviewer') {
+        return res.status(403).json({ message: "Access denied. MEC official role required." });
+      }
+
+      const { 
+        constituency, 
+        pollingCenter, 
+        category, 
+        candidateVotes, 
+        totalVotes, 
+        invalidVotes,
+        mecReferenceNumber,
+        mecOfficialName,
+        dateReceived,
+        notes 
+      } = req.body;
+
+      // Find the polling center ID
+      const pollingCenters = await storage.getPollingCenters();
+      const targetPollingCenter = pollingCenters.find(pc => pc.name === pollingCenter);
+      
+      if (!targetPollingCenter) {
+        return res.status(400).json({ message: "Polling center not found" });
+      }
+
+      // Transform candidate votes into the required format
+      const presidentialVotes = {};
+      const mpVotes = {};
+      const councilorVotes = {};
+
+      candidateVotes.forEach((vote: any) => {
+        if (category === 'president') {
+          presidentialVotes[vote.candidateId] = vote.votes;
+        } else if (category === 'mp') {
+          mpVotes[vote.candidateId] = vote.votes;
+        } else if (category === 'councilor') {
+          councilorVotes[vote.candidateId] = vote.votes;
+        }
+      });
+
+      // Create the official MEC result
+      const resultData = {
+        pollingCenterId: targetPollingCenter.id,
+        submittedBy: user.id,
+        verifiedBy: user.id, // MEC results are pre-verified
+        category,
+        presidentialVotes: category === 'president' ? presidentialVotes : null,
+        mpVotes: category === 'mp' ? mpVotes : null,
+        councilorVotes: category === 'councilor' ? councilorVotes : null,
+        invalidVotes,
+        totalVotes,
+        status: 'verified', // MEC results are official and verified
+        submissionChannel: 'portal',
+        comments: notes || `Official MEC Result - ${mecReferenceNumber}`,
+      };
+
+      const result = await storage.createResult(resultData);
+      
+      // Immediately verify since this is an official MEC result
+      await storage.updateResultStatus(result.id, 'verified', user.id, `Official MEC Result verified by ${mecOfficialName}`);
+
+      // Log audit
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "CREATE_MEC_RESULT",
+        entityType: "result",
+        entityId: result.id,
+        newValues: result,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+
+      // Broadcast real-time updates
+      broadcastUpdate("NEW_MEC_RESULT", result);
+
+      res.status(201).json({ 
+        message: "MEC result recorded successfully",
+        result: {
+          ...result,
+          mecReferenceNumber,
+          mecOfficialName,
+          dateReceived
+        }
+      });
+    } catch (error) {
+      console.error("Error creating MEC result:", error);
+      res.status(400).json({ message: "Failed to record MEC result" });
+    }
+  });
+
   // Review flagged/rejected results (reviewers and admins only)
   app.patch("/api/results/:id/review", isAuthenticated, async (req: any, res) => {
     try {

@@ -6,8 +6,11 @@ import PartyPerformanceChart from "@/components/party-performance-chart";
 import HierarchicalResultsChart from "@/components/hierarchical-results-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/contexts/language-context";
 
 export default function Dashboard() {
+  const { t } = useLanguage();
+  
   // Fetch polling centers for export functionality
   const { data: pollingCenters } = useQuery({
     queryKey: ["/api/polling-centers"],
@@ -53,10 +56,10 @@ export default function Dashboard() {
             className="text-3xl font-bold text-gray-900"
             data-testid="text-dashboard-title"
           >
-            Real-Time Election Center
+            {t("dashboard.title")}
           </h1>
           <p className="text-gray-600 mt-1">
-            Live monitoring and analytics for election results and complaints
+            {t("dashboard.subtitle")}
           </p>
         </div>
         <div className="flex space-x-2">
@@ -66,14 +69,14 @@ export default function Dashboard() {
             data-testid="button-refresh-data"
           >
             <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
+            {t("common.refresh")}
           </Button>
           <Button
             onClick={handleExportReport}
             data-testid="button-export-report"
           >
             <Download className="mr-2 h-4 w-4" />
-            Export Report
+            {t("common.export")}
           </Button>
         </div>
       </div>
@@ -85,7 +88,7 @@ export default function Dashboard() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Election Results Overview</span>
+            <span>{t("dashboard.results_overview")}</span>
             <Badge variant="default">Results</Badge>
           </CardTitle>
         </CardHeader>
