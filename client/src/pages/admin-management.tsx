@@ -64,6 +64,14 @@ export default function AdminManagement() {
       twilio: { enabled: false, accountSid: '', authToken: '', phoneNumber: '' },
       tnm: { enabled: false, apiKey: '', shortCode: '', serviceCode: '' },
       airtel: { enabled: false, clientId: '', clientSecret: '', shortCode: '' }
+    },
+    // SMS Integration settings
+    smsEnabled: false,
+    smsProviders: {
+      twilio: { enabled: false, accountSid: '', authToken: '', phoneNumber: '' },
+      clickatell: { enabled: false, apiKey: '', username: '', password: '' },
+      messagebird: { enabled: false, accessKey: '', originator: '' },
+      africas_talking: { enabled: false, username: '', apiKey: '', shortCode: '' }
     }
   });
 
@@ -95,6 +103,11 @@ export default function AdminManagement() {
   // Fetch WhatsApp providers
   const { data: whatsappProviders } = useQuery({
     queryKey: ["/api/whatsapp-providers"],
+  });
+
+  // Fetch SMS providers
+  const { data: smsProviders } = useQuery({
+    queryKey: ["/api/sms-providers"],
   });
 
   // Fetch wards for councilor dropdown
@@ -146,10 +159,34 @@ export default function AdminManagement() {
     },
   });
 
+  // Toggle SMS provider mutation
+  const toggleSmsProviderMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const res = await apiRequest("PUT", `/api/sms-providers/${id}`, { isActive });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success", 
+        description: "SMS provider updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/sms-providers"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update SMS provider",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Save provider configuration mutation
   const saveProviderConfigMutation = useMutation({
     mutationFn: async ({ id, type, configuration }: { id: string; type: string; configuration: any }) => {
-      const endpoint = type === 'whatsapp' ? `/api/whatsapp-providers/${id}` : `/api/ussd-providers/${id}`;
+      const endpoint = type === 'whatsapp' ? `/api/whatsapp-providers/${id}` : 
+                       type === 'sms' ? `/api/sms-providers/${id}` : 
+                       `/api/ussd-providers/${id}`;
       const res = await apiRequest("PUT", endpoint, { configuration });
       return res.json();
     },
@@ -161,6 +198,7 @@ export default function AdminManagement() {
       setConfiguringProvider(null);
       queryClient.invalidateQueries({ queryKey: ["/api/ussd-providers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/whatsapp-providers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sms-providers"] });
     },
     onError: () => {
       toast({

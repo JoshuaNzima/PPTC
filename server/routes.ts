@@ -332,6 +332,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get SMS providers
+  app.get("/api/sms-providers", isAuthenticated, async (req: any, res) => {
+    try {
+      const providers = await storage.getSmsProviders();
+      res.json(providers);
+    } catch (error) {
+      console.error("Error fetching SMS providers:", error);
+      res.status(500).json({ message: "Failed to fetch SMS providers" });
+    }
+  });
+
+  // Update SMS provider configuration
+  app.put("/api/sms-providers/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUser = req.user;
+      if (currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { isActive, configuration, isPrimary } = req.body;
+      
+      // Update provider
+      const updates: any = {};
+      if (typeof isActive === 'boolean') updates.isActive = isActive;
+      if (typeof isPrimary === 'boolean') updates.isPrimary = isPrimary;
+      if (configuration) updates.configuration = configuration;
+      
+      await storage.updateSmsProvider(id, updates);
+
+      // Log audit
+      await storage.createAuditLog({
+        userId: currentUser.id,
+        action: "UPDATE",
+        entityType: "sms_provider",
+        entityId: id,
+        newValues: updates,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+
+      res.json({ message: "SMS provider updated successfully" });
+    } catch (error) {
+      console.error("Error updating SMS provider:", error);
+      res.status(500).json({ message: "Failed to update SMS provider" });
+    }
+  });
+
   // Import/Export routes
   app.use('/api', importExportRoutes);
 
