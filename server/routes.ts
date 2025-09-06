@@ -1257,6 +1257,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Internal Results endpoints
+  app.get("/api/internal-results", isAuthenticated, async (req, res) => {
+    try {
+      // Get all internal results (submitted through the portal/app)
+      const results = await storage.getResultsBySource('internal');
+      
+      // Transform results for internal results display
+      const internalResults = results.map(result => ({
+        id: result.id,
+        constituency: result.pollingCenter?.constituency || '',
+        pollingCenter: result.pollingCenter?.name || '',
+        pollingCenterCode: result.pollingCenter?.code || '',
+        category: result.category,
+        status: result.status,
+        totalVotes: result.totalVotes,
+        invalidVotes: result.invalidVotes,
+        submissionChannel: result.submissionChannel,
+        candidateVotes: [
+          ...(result.presidentialVotes ? Object.entries(result.presidentialVotes).map(([candidateId, votes]) => ({
+            candidateId,
+            votes: Number(votes),
+            category: 'president'
+          })) : []),
+          ...(result.mpVotes ? Object.entries(result.mpVotes).map(([candidateId, votes]) => ({
+            candidateId,
+            votes: Number(votes),
+            category: 'mp'
+          })) : []),
+          ...(result.councilorVotes ? Object.entries(result.councilorVotes).map(([candidateId, votes]) => ({
+            candidateId,
+            votes: Number(votes),
+            category: 'councilor'
+          })) : [])
+        ],
+        submittedBy: result.submitter?.firstName + ' ' + result.submitter?.lastName,
+        submittedAt: result.createdAt,
+        verifiedBy: result.verifiedBy,
+        verifiedAt: result.verifiedAt,
+        flaggedReason: result.flaggedReason,
+        comments: result.comments,
+        createdAt: result.createdAt,
+        updatedAt: result.updatedAt
+      }));
+      
+      res.json({ internalResults });
+    } catch (error) {
+      console.error("Error fetching internal results:", error);
+      res.status(500).json({ message: "Failed to fetch internal results" });
+    }
+  });
+
   // Review flagged/rejected results (reviewers and admins only)
   app.patch("/api/results/:id/review", isAuthenticated, async (req: any, res) => {
     try {

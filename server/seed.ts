@@ -395,6 +395,97 @@ export async function seedDatabase() {
       console.log("✓ WhatsApp providers already exist");
     }
 
+    // Check if sample results already exist
+    const existingResults = await storage.getResults();
+    
+    if (existingResults.length === 0 && existingAdmin) {
+      // Get required data for sample results
+      const pollingCentersData = await storage.getPollingCenters();
+      const candidates = await storage.getCandidates();
+      
+      if (pollingCentersData.data.length > 0 && candidates.data.length > 0) {
+        const pollingCenter1 = pollingCentersData.data[0]; // Lilongwe Primary School
+        const pollingCenter2 = pollingCentersData.data[1]; // Blantyre Community Hall
+        
+        // Get candidates by category
+        const presidentialCandidates = candidates.data.filter(c => c.category === 'president');
+        const mpCandidates = candidates.data.filter(c => c.category === 'mp');
+        const councilorCandidates = candidates.data.filter(c => c.category === 'councilor');
+
+        // Create sample internal results for polling center 1
+        if (presidentialCandidates.length >= 2) {
+          const presidentialVotes = {
+            [presidentialCandidates[0].id]: 345,
+            [presidentialCandidates[1].id]: 289,
+            [presidentialCandidates[2]?.id || presidentialCandidates[0].id]: 156
+          };
+          
+          await storage.createResult({
+            pollingCenterId: pollingCenter1.id,
+            submittedBy: existingAdmin.id,
+            category: "president",
+            presidentialVotes,
+            mpVotes: null,
+            councilorVotes: null,
+            invalidVotes: 15,
+            status: "verified",
+            source: "internal",
+            submissionChannel: "portal",
+            comments: "Sample presidential results from Lilongwe Primary School"
+          });
+        }
+
+        // Create MP results
+        if (mpCandidates.length >= 2) {
+          const mpVotes = {
+            [mpCandidates[0].id]: 412,
+            [mpCandidates[1].id]: 367
+          };
+          
+          await storage.createResult({
+            pollingCenterId: pollingCenter1.id,
+            submittedBy: existingAdmin.id,
+            category: "mp",
+            presidentialVotes: null,
+            mpVotes,
+            councilorVotes: null,
+            invalidVotes: 8,
+            status: "pending",
+            source: "internal",
+            submissionChannel: "portal",
+            comments: "Sample MP results from Lilongwe Primary School"
+          });
+        }
+
+        // Create councilor results for polling center 2
+        if (councilorCandidates.length >= 2) {
+          const councilorVotes = {
+            [councilorCandidates[0].id]: 523,
+            [councilorCandidates[1].id]: 445
+          };
+          
+          await storage.createResult({
+            pollingCenterId: pollingCenter2.id,
+            submittedBy: existingAdmin.id,
+            category: "councilor",
+            presidentialVotes: null,
+            mpVotes: null,
+            councilorVotes,
+            invalidVotes: 12,
+            status: "flagged",
+            flaggedReason: "Sample flagged result for testing",
+            source: "internal",
+            submissionChannel: "whatsapp",
+            comments: "Sample councilor results from Blantyre Community Hall"
+          });
+        }
+
+        console.log("✓ Created sample internal results");
+      }
+    } else {
+      console.log("✓ Results already exist");
+    }
+
     console.log("🎉 Database seeding completed successfully!");
     
     return {
