@@ -18,7 +18,7 @@ interface InternalResult {
   status: "pending" | "verified" | "flagged" | "rejected";
   totalVotes: number;
   invalidVotes: number;
-  submissionChannel: "portal" | "whatsapp" | "ussd" | "both";
+  submissionChannel: "portal" | "whatsapp" | "ussd" | "sms" | "both";
   candidateVotes: Array<{
     candidateId: string;
     votes: number;
@@ -91,6 +91,7 @@ export default function InternalResultsPage() {
     portal: internalResults.filter(r => r.submissionChannel === "portal").length,
     whatsapp: internalResults.filter(r => r.submissionChannel === "whatsapp").length,
     ussd: internalResults.filter(r => r.submissionChannel === "ussd").length,
+    sms: internalResults.filter(r => r.submissionChannel === "sms").length,
   };
 
   const getStatusBadge = (status: string) => {
@@ -129,6 +130,8 @@ export default function InternalResultsPage() {
         return <Badge variant="outline" className="border-green-300 text-green-700">WhatsApp</Badge>;
       case "ussd":
         return <Badge variant="outline" className="border-purple-300 text-purple-700">USSD</Badge>;
+      case "sms":
+        return <Badge variant="outline" className="border-orange-300 text-orange-700">SMS</Badge>;
       case "both":
         return <Badge variant="outline" className="border-gray-300 text-gray-700">Multiple</Badge>;
       default:
@@ -296,6 +299,7 @@ export default function InternalResultsPage() {
                 <SelectItem value="portal">Portal</SelectItem>
                 <SelectItem value="whatsapp">WhatsApp</SelectItem>
                 <SelectItem value="ussd">USSD</SelectItem>
+                <SelectItem value="sms">SMS</SelectItem>
                 <SelectItem value="both">Multiple</SelectItem>
               </SelectContent>
             </Select>
