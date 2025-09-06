@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import FileUpload from "./file-upload";
 import { NotebookPen, Save, Users, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -36,6 +37,7 @@ export default function ResultSubmissionForm() {
   const [files, setFiles] = useState<File[]>([]);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState<FormData | null>(null);
+  const { requestAnalytics } = useWebSocket();
 
   const { data: pollingCenters } = useQuery({
     queryKey: ["/api/polling-centers"],
@@ -102,6 +104,8 @@ export default function ResultSubmissionForm() {
       setFiles([]);
       queryClient.invalidateQueries({ queryKey: ["/api/results"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      // Request updated analytics to reflect new submission
+      requestAnalytics();
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {

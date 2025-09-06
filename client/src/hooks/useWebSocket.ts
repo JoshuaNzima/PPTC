@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useToast } from './use-toast';
+import { useAuth } from './useAuth';
 
 interface WebSocketMessage {
   type: string;
@@ -28,6 +30,8 @@ export function useWebSocket() {
   const [analytics, setAnalytics] = useState<RealTimeAnalytics | null>(null);
   const [recentSubmissions, setRecentSubmissions] = useState<any[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -41,6 +45,15 @@ export function useWebSocket() {
         ws.onopen = () => {
           console.log('WebSocket connected');
           setIsConnected(true);
+          
+          // Authenticate WebSocket connection with user role
+          if (user) {
+            ws.send(JSON.stringify({
+              type: 'AUTHENTICATE_WS',
+              userId: user.id,
+              userRole: user.role
+            }));
+          }
         };
 
         ws.onmessage = (event) => {
@@ -67,6 +80,20 @@ export function useWebSocket() {
               case 'STATS_UPDATE':
                 if (analytics) {
                   setAnalytics(prev => prev ? { ...prev, overview: message.data } : null);
+                }
+                break;
+              case 'NEW_SUBMISSION_NOTIFICATION':
+                // Show toast notification for new submissions (only for non-agents)
+                if (user && user.role !== 'agent') {
+                  const isOfficialMEC = message.data.source === 'mec';
+                  toast({
+                    title: isOfficialMEC ? "🏛️ Official Results Received" : "📊 New Results Submitted",
+                    description: message.data.message,
+                    duration: 6000,
+                  });
+                  
+                  // Also add to recent submissions
+                  setRecentSubmissions(prev => [message.data, ...prev.slice(0, 9)]);
                 }
                 break;
             }

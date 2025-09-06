@@ -22,18 +22,18 @@ if (!fs.existsSync(uploadDir)) {
 async function validateDocumentData(submittedData: any, uploadedFiles: any[]): Promise<{isValid: boolean, reason?: string}> {
   // Basic validation checks
   const checks = [];
-  
+
   // Check if total votes are reasonable (within 1-99% of registered voters × 3)
   const totalVotes = submittedData.presidentialVotes?.reduce((sum: number, vote: any) => sum + vote.votes, 0) +
     submittedData.mpVotes?.reduce((sum: number, vote: any) => sum + vote.votes, 0) +
     submittedData.councilorVotes?.reduce((sum: number, vote: any) => sum + vote.votes, 0) +
     submittedData.invalidVotes;
-  
+
   // Check for suspicious patterns
   if (totalVotes < 10) {
     checks.push("Total votes unusually low (less than 10)");
   }
-  
+
   // Check if uploaded files exist and have reasonable sizes
   if (uploadedFiles.length === 0) {
     checks.push("No supporting documents uploaded");
@@ -47,23 +47,23 @@ async function validateDocumentData(submittedData: any, uploadedFiles: any[]): P
       }
     }
   }
-  
+
   // Check for mismatched vote counts (simple validation)
   const hasPresidentialVotes = submittedData.presidentialVotes && submittedData.presidentialVotes.length > 0;
   const hasMpVotes = submittedData.mpVotes && submittedData.mpVotes.length > 0;
   const hasCouncilorVotes = submittedData.councilorVotes && submittedData.councilorVotes.length > 0;
-  
+
   if (!hasPresidentialVotes || !hasMpVotes || !hasCouncilorVotes) {
     checks.push("Missing vote counts for one or more election categories (Presidential, MP, or Councilor)");
   }
-  
+
   if (checks.length > 0) {
     return {
       isValid: false,
       reason: checks.join("; ")
     };
   }
-  
+
   return { isValid: true };
 }
 
@@ -76,7 +76,7 @@ const upload = multer({
     const allowedTypes = /jpeg|jpg|png|pdf/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
-    
+
     if (mimetype && extname) {
       return cb(null, true);
     } else {
@@ -217,7 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get updated user with role
       const updatedUser = await storage.getUser(user.id);
-      
+
       // Remove password hash from response
       const { passwordHash: _, ...userResponse } = updatedUser || user;
       res.status(201).json(userResponse);
@@ -242,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const csvData = fs.readFileSync(req.file.path, 'utf8');
       const lines = csvData.split('\n').filter(line => line.trim());
-      
+
       if (lines.length < 2) {
         return res.status(400).json({ message: "CSV file must have header and at least one data row" });
       }
@@ -250,7 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
       const requiredHeaders = ['name', 'party', 'category'];
       const optionalHeaders = ['constituency', 'abbreviation'];
-      
+
       const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
       if (missingHeaders.length > 0) {
         return res.status(400).json({ 
@@ -259,11 +259,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const results = { created: 0, errors: [] as any[] };
-      
+
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map(v => v.trim());
         if (values.length < headers.length) continue;
-        
+
         try {
           const candidateData: any = {};
           headers.forEach((header, index) => {
@@ -353,13 +353,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { id } = req.params;
       const { isActive, configuration, isPrimary } = req.body;
-      
+
       // Update provider
       const updates: any = {};
       if (typeof isActive === 'boolean') updates.isActive = isActive;
       if (typeof isPrimary === 'boolean') updates.isPrimary = isPrimary;
       if (configuration) updates.configuration = configuration;
-      
+
       await storage.updateSmsProvider(id, updates);
 
       // Log audit
@@ -420,7 +420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/register', async (req, res) => {
     try {
       const userData = validateRegister(req.body);
-      
+
       // Check if user already exists
       const existingUser = await storage.getUserByIdentifier(userData.email || userData.phone || '');
       if (existingUser) {
@@ -449,7 +449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/login', (req, res, next) => {
     try {
       validateLogin(req.body);
-      
+
       passport.authenticate('local', (err: any, user: any, info: any) => {
         if (err) {
           return res.status(500).json({ message: "Login failed" });
@@ -457,7 +457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!user) {
           return res.status(401).json({ message: info?.message || "Invalid credentials" });
         }
-        
+
         req.logIn(user, (err) => {
           if (err) {
             return res.status(500).json({ message: "Login failed" });
@@ -501,7 +501,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { firstName, lastName, email, phone } = req.body;
       const user = req.user;
-      
+
       // Check if last profile update was less than 30 days ago
       if (user.lastProfileUpdate) {
         const daysSinceLastUpdate = (new Date().getTime() - new Date(user.lastProfileUpdate).getTime()) / (1000 * 60 * 60 * 24);
@@ -512,7 +512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       const updatedUser = await storage.updateUser(req.user.id, {
         firstName,
         lastName,
@@ -535,7 +535,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user;
       const verificationToken = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
       const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
-      
+
       await storage.updateUser(user.id, {
         emailVerificationToken: verificationToken,
         emailVerificationExpiry: expiry,
@@ -543,7 +543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // In real implementation, send email with verification code
       console.log(`Email verification code for ${user.email}: ${verificationToken}`);
-      
+
       res.json({ message: "Verification code sent to your email" });
     } catch (error) {
       console.error("Error sending email verification:", error);
@@ -555,25 +555,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { code } = req.body;
       const user = req.user;
-      
+
       if (!user.emailVerificationToken || !user.emailVerificationExpiry) {
         return res.status(400).json({ message: "No verification code pending" });
       }
-      
+
       if (new Date() > new Date(user.emailVerificationExpiry)) {
         return res.status(400).json({ message: "Verification code expired" });
       }
-      
+
       if (user.emailVerificationToken !== code) {
         return res.status(400).json({ message: "Invalid verification code" });
       }
-      
+
       await storage.updateUser(user.id, {
         emailVerified: true,
         emailVerificationToken: null,
         emailVerificationExpiry: null,
       });
-      
+
       res.json({ message: "Email verified successfully" });
     } catch (error) {
       console.error("Error verifying email:", error);
@@ -587,7 +587,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user;
       const verificationToken = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
       const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
-      
+
       await storage.updateUser(user.id, {
         phoneVerificationToken: verificationToken,
         phoneVerificationExpiry: expiry,
@@ -595,7 +595,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // In real implementation, send SMS with verification code
       console.log(`Phone verification code for ${user.phone}: ${verificationToken}`);
-      
+
       res.json({ message: "Verification code sent to your phone" });
     } catch (error) {
       console.error("Error sending phone verification:", error);
@@ -607,25 +607,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { code } = req.body;
       const user = req.user;
-      
+
       if (!user.phoneVerificationToken || !user.phoneVerificationExpiry) {
         return res.status(400).json({ message: "No verification code pending" });
       }
-      
+
       if (new Date() > new Date(user.phoneVerificationExpiry)) {
         return res.status(400).json({ message: "Verification code expired" });
       }
-      
+
       if (user.phoneVerificationToken !== code) {
         return res.status(400).json({ message: "Invalid verification code" });
       }
-      
+
       await storage.updateUser(user.id, {
         phoneVerified: true,
         phoneVerificationToken: null,
         phoneVerificationExpiry: null,
       });
-      
+
       res.json({ message: "Phone verified successfully" });
     } catch (error) {
       console.error("Error verifying phone:", error);
@@ -636,7 +636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/auth/change-password", isAuthenticated, async (req: any, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
-      
+
       // Verify current password
       const user = await storage.getUserById(req.user.id);
       if (!user) {
@@ -650,7 +650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Hash new password
       const newPasswordHash = await bcrypt.hash(newPassword, 10);
-      
+
       await storage.updateUser(req.user.id, {
         passwordHash: newPasswordHash,
         updatedAt: new Date(),
@@ -667,7 +667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/request-password-reset", async (req, res) => {
     try {
       const { identifier } = req.body; // email or phone
-      
+
       // TODO: Implement password reset token generation and email/SMS sending
       res.json({ 
         message: "If an account with this email/phone exists, you will receive reset instructions.",
@@ -724,9 +724,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const page = parseInt(req.query.page as string) || undefined;
       const limit = parseInt(req.query.limit as string) || undefined;
-      
+
       const result = await storage.getPollingCenters(page, limit);
-      
+
       if (page && limit) {
         res.json({
           data: result.data,
@@ -752,7 +752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const center = await storage.reactivatePollingCenter(req.params.id);
       res.json(center);
     } catch (error) {
@@ -767,7 +767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const center = await storage.deactivatePollingCenter(req.params.id);
       res.json(center);
     } catch (error) {
@@ -809,7 +809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = insertPollingCenterSchema.parse(req.body);
       const center = await storage.createPollingCenter(validatedData);
-      
+
       // Log audit
       await storage.createAuditLog({
         userId: req.user.id,
@@ -849,7 +849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = insertPoliticalPartySchema.parse(req.body);
       const party = await storage.createPoliticalParty(validatedData);
-      
+
       // Log the action
       await storage.createAuditLog({
         userId: user.id,
@@ -877,13 +877,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { id } = req.params;
       const validatedData = insertPoliticalPartySchema.partial().parse(req.body);
-      
+
       // Get current party for audit log
       const currentParties = await storage.getPoliticalParties();
       const currentParty = currentParties.find(p => p.id === id);
-      
+
       const updatedParty = await storage.updatePoliticalParty(id, validatedData);
-      
+
       // Log the action
       await storage.createAuditLog({
         userId: user.id,
@@ -911,13 +911,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      
+
       // Get current party for audit log
       const currentParties = await storage.getPoliticalParties();
       const currentParty = currentParties.find(p => p.id === id);
-      
+
       const deactivatedParty = await storage.deactivatePoliticalParty(id);
-      
+
       // Log the action
       await storage.createAuditLog({
         userId: user.id,
@@ -945,13 +945,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      
+
       // Get current party for audit log
       const currentParties = await storage.getPoliticalParties();
       const currentParty = currentParties.find(p => p.id === id);
-      
+
       const reactivatedParty = await storage.reactivatePoliticalParty(id);
-      
+
       // Log the action
       await storage.createAuditLog({
         userId: user.id,
@@ -979,17 +979,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      
+
       // Get current party for audit log
       const currentParties = await storage.getPoliticalParties();
       const currentParty = currentParties.find(p => p.id === id);
-      
+
       if (!currentParty) {
         return res.status(404).json({ message: "Political party not found" });
       }
-      
+
       await storage.deletePoliticalParty(id);
-      
+
       // Log the action
       await storage.createAuditLog({
         userId: user.id,
@@ -1014,9 +1014,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const page = parseInt(req.query.page as string) || undefined;
       const limit = parseInt(req.query.limit as string) || undefined;
-      
+
       const result = await storage.getCandidates(page, limit);
-      
+
       if (page && limit) {
         res.json({
           data: result.data,
@@ -1042,7 +1042,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const candidate = await storage.reactivateCandidate(req.params.id);
       res.json(candidate);
     } catch (error) {
@@ -1057,7 +1057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const candidate = await storage.deactivateCandidate(req.params.id);
       res.json(candidate);
     } catch (error) {
@@ -1088,13 +1088,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { status } = req.query;
       let results;
-      
+
       if (status) {
         results = await storage.getResultsByStatus(status as any);
       } else {
         results = await storage.getResults();
       }
-      
+
       res.json(results);
     } catch (error) {
       console.error("Error fetching results:", error);
@@ -1149,14 +1149,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Broadcast real-time updates
       broadcastUpdate("NEW_RESULT", result);
-      
+
       // Get and broadcast updated analytics
       const analytics = await getRealTimeAnalytics();
       if (analytics) {
         broadcastUpdate("ANALYTICS_UPDATE", analytics);
       }
 
-      res.status(201).json(result);
+      // Return success response
+      res.json({
+        message: "Result submitted successfully",
+        result: {
+          id: result.id,
+          pollingCenter: result.pollingCenter,
+          category: result.category,
+          status: result.status,
+          createdAt: result.createdAt
+        }
+      });
     } catch (error) {
       console.error("Error creating result:", error);
       res.status(400).json({ message: "Failed to create result" });
@@ -1171,15 +1181,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mecResults = allResults.filter(result => 
         result.source === 'mec' || result.status === 'verified'
       );
-      
+
       // Get candidates for name mapping
       const candidatesResult = await storage.getCandidates();
       const candidates = candidatesResult.data || candidatesResult;
-      
+
       // Transform results for MEC results display
       const transformedResults = mecResults.map(result => {
         const candidateVotes = [];
-        
+
         // Process presidential votes
         if (result.presidentialVotes && typeof result.presidentialVotes === 'object') {
           Object.entries(result.presidentialVotes).forEach(([candidateId, votes]) => {
@@ -1194,7 +1204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
         }
-        
+
         // Process MP votes
         if (result.mpVotes && typeof result.mpVotes === 'object') {
           Object.entries(result.mpVotes).forEach(([candidateId, votes]) => {
@@ -1209,7 +1219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
         }
-        
+
         // Process councilor votes
         if (result.councilorVotes && typeof result.councilorVotes === 'object') {
           Object.entries(result.councilorVotes).forEach(([candidateId, votes]) => {
@@ -1224,7 +1234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
         }
-        
+
         return {
           id: result.id,
           constituency: result.pollingCenter?.constituency || '',
@@ -1242,7 +1252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           notes: result.comments
         };
       });
-      
+
       res.json({ mecResults: transformedResults });
     } catch (error) {
       console.error("Error fetching MEC results:", error);
@@ -1253,7 +1263,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/mec-results", isAuthenticated, async (req: any, res) => {
     try {
       const user = req.user;
-      
+
       // Only allow MEC officials (admin/supervisor) to create official MEC results
       if (user?.role !== 'admin' && user?.role !== 'supervisor') {
         return res.status(403).json({ message: "Access denied. MEC official role required." });
@@ -1274,7 +1284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Find the polling center ID
       const pollingCentersResult = await storage.getPollingCenters();
       const targetPollingCenter = pollingCentersResult.data.find(pc => pc.name === pollingCenter);
-      
+
       if (!targetPollingCenter) {
         return res.status(400).json({ message: "Polling center not found" });
       }
@@ -1312,7 +1322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const result = await storage.createResult(resultData);
-      
+
       // Immediately verify since this is an official MEC result
       await storage.updateResultStatus(result.id, 'verified', user.id, `Official MEC Result verified by ${mecOfficialName}`);
 
@@ -1327,10 +1337,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userAgent: req.get("User-Agent"),
       });
 
-      // Broadcast real-time updates
-      broadcastUpdate("NEW_MEC_RESULT", result);
+      // Broadcast new MEC submission to all connected users except agents
+      if (req.app.get('wss')) {
+        const wss = req.app.get('wss');
+        const submissionNotification = {
+          type: 'NEW_SUBMISSION_NOTIFICATION',
+          data: {
+            id: result.id,
+            pollingCenter: result.pollingCenter,
+            category: result.category,
+            submittedBy: `MEC Official: ${mecOfficialName}`,
+            submittedAt: result.createdAt,
+            message: `New official MEC ${result.category} results received for ${result.pollingCenter?.name || 'polling center'}`,
+            source: 'mec'
+          },
+          timestamp: new Date().toISOString()
+        };
 
-      res.status(201).json({ 
+        wss.clients.forEach((client: any) => {
+          if (client.readyState === 1 && client.userRole && client.userRole !== 'agent') {
+            client.send(JSON.stringify(submissionNotification));
+          }
+        });
+      }
+
+      res.json({
         message: "MEC result recorded successfully",
         result: {
           ...result,
@@ -1350,7 +1381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get all internal results (submitted through the portal/app)
       const results = await storage.getResultsBySource('internal');
-      
+
       // Transform results for internal results display
       const internalResults = results.map(result => ({
         id: result.id,
@@ -1388,7 +1419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: result.createdAt,
         updatedAt: result.updatedAt
       }));
-      
+
       res.json({ internalResults });
     } catch (error) {
       console.error("Error fetching internal results:", error);
@@ -1406,7 +1437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { action, comments } = req.body;
       const resultId = req.params.id;
-      
+
       let status;
       switch (action) {
         case 'approve':
@@ -1442,7 +1473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Broadcast real-time updates
       broadcastUpdate("RESULT_REVIEWED", updatedResult);
-      
+
       // Get and broadcast updated analytics
       const analytics = await getRealTimeAnalytics();
       if (analytics) {
@@ -1487,7 +1518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Broadcast real-time updates
       broadcastUpdate("RESULT_STATUS_CHANGED", updatedResult);
-      
+
       // Get and broadcast updated analytics
       const analytics = await getRealTimeAnalytics();
       if (analytics) {
@@ -1691,7 +1722,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userId = req.params.id;
-      
+
       // Prevent admin from deleting themselves
       if (userId === currentUser.id) {
         return res.status(400).json({ message: "Cannot delete your own account" });
@@ -1821,12 +1852,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { id } = req.params;
       const { isActive, configuration } = req.body;
-      
+
       // Update provider active status or configuration
       const updates: any = {};
       if (typeof isActive === 'boolean') updates.isActive = isActive;
       if (configuration) updates.configuration = configuration;
-      
+
       // Update the provider
       await storage.updateUssdProvider(id, updates);
 
@@ -1858,13 +1889,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { id } = req.params;
       const { isActive, configuration, isPrimary } = req.body;
-      
+
       // Update provider
       const updates: any = {};
       if (typeof isActive === 'boolean') updates.isActive = isActive;
       if (typeof isPrimary === 'boolean') updates.isPrimary = isPrimary;
       if (configuration) updates.configuration = configuration;
-      
+
       await storage.updateWhatsappProvider(id, updates);
 
       // Log audit
@@ -1893,11 +1924,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const settings = req.body;
-      
+
       // In a real implementation, you'd save these to a settings table
       // For now, we'll just validate and return success
       // You could store these in environment variables or a dedicated settings table
-      
+
       // Log audit
       await storage.createAuditLog({
         userId: currentUser.id,
@@ -2029,16 +2060,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const messages = change.value.messages;
               messages?.forEach(async (message: any) => {
                 console.log("Received WhatsApp message:", message);
-                
+
                 // Here you would process the message and extract election data
                 // For now, we'll just log it and send a response
                 if (message.type === "text") {
                   const phoneNumber = message.from;
                   const messageText = message.text.body;
-                  
+
                   // Process election results from message
                   // This is where you'd parse results and create database entries
-                  
+
                   console.log(`Message from ${phoneNumber}: ${messageText}`);
                 }
               });
@@ -2059,7 +2090,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user;
       const currentSessionId = req.sessionID;
-      
+
       // Check if user has a different active session
       if (user.currentSessionId && user.currentSessionId !== currentSessionId) {
         // Check if the existing session is still valid
@@ -2073,12 +2104,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       // Update current session
       const sessionExpiry = new Date();
       sessionExpiry.setHours(sessionExpiry.getHours() + 24); // 24 hour session
       await storage.updateUserSession(user.id, currentSessionId, sessionExpiry);
-      
+
       res.json({ message: "Session validated" });
     } catch (error) {
       console.error("Error validating session:", error);
@@ -2090,18 +2121,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ussd/twilio", async (req, res) => {
     try {
       const { From: phoneNumber, Body: text, SessionId: sessionId } = req.body;
-      
+
       // Get or create USSD session
       let session = await storage.getUssdSession(sessionId);
       if (!session) {
         session = await storage.createUssdSession(phoneNumber, sessionId, "main_menu");
       }
-      
+
       // Check if phone number is authenticated for protected operations
       const authenticatedUser = await storage.getUserByIdentifier(phoneNumber);
-      
+
       let response = "";
-      
+
       switch (session.currentStep) {
         case "main_menu":
           if (authenticatedUser?.isApproved) {
@@ -2111,7 +2142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           await storage.updateUssdSession(sessionId, "menu_selection", {});
           break;
-          
+
         case "menu_selection":
           if (text === "1") {
             response = `Enter your first name:`;
@@ -2134,18 +2165,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             response = `Invalid option. Please try again.\n1. Register as Agent\n${authenticatedUser?.isApproved ? '2. Submit Results\n' : ''}3. Check Status\n0. Exit`;
           }
           break;
-          
-          
+
+
         case "register_firstname":
           const sessionData = { firstName: text };
           response = `Enter your last name:`;
           await storage.updateUssdSession(sessionId, "register_lastname", sessionData);
           break;
-          
+
         case "register_lastname":
           const currentData = session.sessionData as any;
           response = `Registration submitted for approval.\nName: ${currentData.firstName} ${text}\nPhone: ${phoneNumber}\nYou will be notified when approved.`;
-          
+
           // Create pending user for admin approval
           const hashedPassword = await hashPassword("temp123"); // Temporary password
           await storage.createUser({
@@ -2154,14 +2185,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             lastName: text,
             passwordHash: hashedPassword,
           });
-          
+
           await storage.expireUssdSession(sessionId);
           break;
-          
+
         case "submit_results_center":
           const centerCode = text.toUpperCase();
           const pollingCenter = await storage.getPollingCenterByCode(centerCode);
-          
+
           if (!pollingCenter) {
             response = `Invalid polling center code. Please enter a valid code:`;
           } else {
@@ -2174,16 +2205,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
           break;
-          
+
         case "submit_results_category":
           const categoryMap = { "1": "president", "2": "mp", "3": "councilor" };
           const selectedCategory = categoryMap[text as "1" | "2" | "3"];
-          
+
           if (!selectedCategory) {
             response = `Invalid option. Select category:\n1. Presidential\n2. Member of Parliament\n3. Councilor`;
           } else {
             const sessionData = session.sessionData as any;
-            
+
             // Get candidates for this category and constituency (if applicable)
             let candidates;
             if (selectedCategory === "president") {
@@ -2193,7 +2224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const center = await storage.getPollingCenter(sessionData.pollingCenterId);
               candidates = await storage.getCandidatesByCategory(selectedCategory as "mp" | "councilor", center?.constituency);
             }
-            
+
             if (!candidates || candidates.length === 0) {
               response = `No candidates found for this category. Returning to menu...`;
               await storage.updateUssdSession(sessionId, "main_menu", {});
@@ -2204,7 +2235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 candidatesList += `${candidate.abbreviation || candidate.name.substring(0, 3).toUpperCase()}: ${candidate.name}\n`;
               });
               candidatesList += `\nFormat: ABB=123,XYZ=456\nOr type SKIP to skip this category`;
-              
+
               response = candidatesList;
               await storage.updateUssdSession(sessionId, "submit_results_votes", {
                 ...sessionData,
@@ -2218,10 +2249,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           break;
-          
+
         case "submit_results_votes":
           const voteSessionData = session.sessionData as any;
-          
+
           if (text.toUpperCase() === "SKIP") {
             response = `Category skipped. Select another category:\n1. Presidential\n2. Member of Parliament\n3. Councilor\n0. Finish submission`;
             await storage.updateUssdSession(sessionId, "submit_results_category", voteSessionData);
@@ -2231,18 +2262,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const voteEntries = text.split(',').map(entry => entry.trim());
               const candidateVotes: any[] = [];
               let totalVotes = 0;
-              
+
               for (const entry of voteEntries) {
                 const [abbr, voteStr] = entry.split('=');
                 if (!abbr || !voteStr) continue;
-                
+
                 const votes = parseInt(voteStr.trim());
                 if (isNaN(votes) || votes < 0) continue;
-                
+
                 const candidate = voteSessionData.candidates.find((c: any) => 
                   c.abbreviation.toLowerCase() === abbr.trim().toLowerCase()
                 );
-                
+
                 if (candidate) {
                   candidateVotes.push({
                     candidateId: candidate.id,
@@ -2252,7 +2283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   totalVotes += votes;
                 }
               }
-              
+
               if (candidateVotes.length === 0) {
                 response = `Invalid format. Use: ABB=123,XYZ=456\nTry again or type SKIP:`;
               } else {
@@ -2268,11 +2299,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           break;
-          
+
         case "submit_results_invalid":
           const invalidVotes = parseInt(text) || 0;
           const finalSessionData = session.sessionData as any;
-          
+
           try {
             // Create results for each candidate
             const results = [];
@@ -2288,7 +2319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
               results.push(result);
             }
-            
+
             response = `Results submitted successfully!\n\nCenter: ${finalSessionData.centerName}\nCategory: ${finalSessionData.category}\nTotal Valid: ${finalSessionData.totalVotes}\nInvalid: ${invalidVotes}\n\nSubmit another category?\n1. Presidential\n2. MP\n3. Councilor\n0. Exit`;
             await storage.updateUssdSession(sessionId, "submit_results_category", {
               pollingCenterId: finalSessionData.pollingCenterId,
@@ -2300,11 +2331,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             response = `Error submitting results. Please try again.\nEnter invalid votes (or 0):`;
           }
           break;
-          
+
         case "check_status":
           const statusCenterCode = text.toUpperCase();
           const statusCenter = await storage.getPollingCenterByCode(statusCenterCode);
-          
+
           if (!statusCenter) {
             response = `Invalid polling center code. Please try again:`;
           } else {
@@ -2314,36 +2345,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.expireUssdSession(sessionId);
           }
           break;
-          
+
         default:
           response = `Welcome to PTC Election System\n1. Register as Agent\n2. Submit Results\n3. Check Status\n0. Exit`;
           await storage.updateUssdSession(sessionId, "main_menu", {});
       }
-      
+
       res.type('text/plain').send(response);
     } catch (error) {
       console.error("Error processing USSD request:", error);
       res.type('text/plain').send("Service temporarily unavailable. Please try again later.");
     }
   });
-  
+
   // Africa's Talking USSD webhook
   app.post("/api/ussd/africas-talking", async (req, res) => {
     try {
       const { phoneNumber, text, sessionId } = req.body;
-      
+
       // Get or create USSD session
       let session = await storage.getUssdSession(sessionId);
       if (!session) {
         session = await storage.createUssdSession(phoneNumber, sessionId, "main_menu");
       }
-      
+
       // Check if phone number is authenticated for protected operations
       const authenticatedUser = await storage.getUserByIdentifier(phoneNumber);
-      
+
       let response = "";
       let continueSession = true;
-      
+
       switch (session.currentStep) {
         case "main_menu":
           if (authenticatedUser?.isApproved) {
@@ -2353,7 +2384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           await storage.updateUssdSession(sessionId, "menu_selection", {});
           break;
-          
+
         case "menu_selection":
           if (text === "1") {
             response = `Enter your first name:`;
@@ -2377,17 +2408,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             response = `Invalid option. Please try again.\n1. Register as Agent\n${authenticatedUser?.isApproved ? '2. Submit Results\n' : ''}3. Check Status\n0. Exit`;
           }
           break;
-          
+
         case "register_firstname":
           const sessionData = { firstName: text };
           response = `Enter your last name:`;
           await storage.updateUssdSession(sessionId, "register_lastname", sessionData);
           break;
-          
+
         case "register_lastname":
           const currentData = session.sessionData as any;
           response = `Registration submitted for approval.\nName: ${currentData.firstName} ${text}\nPhone: ${phoneNumber}\nYou will be notified when approved.`;
-          
+
           // Create pending user for admin approval
           const hashedPassword = await hashPassword("temp123"); // Temporary password
           await storage.createUser({
@@ -2396,15 +2427,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             lastName: text,
             passwordHash: hashedPassword,
           });
-          
+
           await storage.expireUssdSession(sessionId);
           continueSession = false;
           break;
-          
+
         case "submit_results_center":
           const centerCode = text.toUpperCase();
           const pollingCenter = await storage.getPollingCenterByCode(centerCode);
-          
+
           if (!pollingCenter) {
             response = `Invalid polling center code. Please enter a valid code:`;
           } else {
@@ -2417,16 +2448,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
           break;
-          
+
         case "submit_results_category":
           const categoryMap = { "1": "president", "2": "mp", "3": "councilor" };
           const selectedCategory = categoryMap[text as "1" | "2" | "3"];
-          
+
           if (!selectedCategory) {
             response = `Invalid option. Select category:\n1. Presidential\n2. Member of Parliament\n3. Councilor`;
           } else {
             const sessionData = session.sessionData as any;
-            
+
             // Get candidates for this category and constituency (if applicable)
             let candidates;
             if (selectedCategory === "president") {
@@ -2436,7 +2467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const center = await storage.getPollingCenter(sessionData.pollingCenterId);
               candidates = await storage.getCandidatesByCategory(selectedCategory as "mp" | "councilor", center?.constituency);
             }
-            
+
             if (!candidates || candidates.length === 0) {
               response = `No candidates found for this category. Returning to menu...`;
               await storage.updateUssdSession(sessionId, "main_menu", {});
@@ -2447,7 +2478,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 candidatesList += `${candidate.abbreviation || candidate.name.substring(0, 3).toUpperCase()}: ${candidate.name}\n`;
               });
               candidatesList += `\nFormat: ABB=123,XYZ=456\nOr type SKIP to skip this category`;
-              
+
               response = candidatesList;
               await storage.updateUssdSession(sessionId, "submit_results_votes", {
                 ...sessionData,
@@ -2461,10 +2492,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           break;
-          
+
         case "submit_results_votes":
           const voteSessionData = session.sessionData as any;
-          
+
           if (text.toUpperCase() === "SKIP") {
             response = `Category skipped. Select another category:\n1. Presidential\n2. Member of Parliament\n3. Councilor\n0. Finish submission`;
             await storage.updateUssdSession(sessionId, "submit_results_category", voteSessionData);
@@ -2474,18 +2505,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const voteEntries = text.split(',').map(entry => entry.trim());
               const candidateVotes: any[] = [];
               let totalVotes = 0;
-              
+
               for (const entry of voteEntries) {
                 const [abbr, voteStr] = entry.split('=');
                 if (!abbr || !voteStr) continue;
-                
+
                 const votes = parseInt(voteStr.trim());
                 if (isNaN(votes) || votes < 0) continue;
-                
+
                 const candidate = voteSessionData.candidates.find((c: any) => 
                   c.abbreviation.toLowerCase() === abbr.trim().toLowerCase()
                 );
-                
+
                 if (candidate) {
                   candidateVotes.push({
                     candidateId: candidate.id,
@@ -2495,7 +2526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   totalVotes += votes;
                 }
               }
-              
+
               if (candidateVotes.length === 0) {
                 response = `Invalid format. Use: ABB=123,XYZ=456\nTry again or type SKIP:`;
               } else {
@@ -2511,11 +2542,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           break;
-          
+
         case "submit_results_invalid":
           const invalidVotes = parseInt(text) || 0;
           const finalSessionData = session.sessionData as any;
-          
+
           try {
             // Create results for each candidate
             const results = [];
@@ -2531,7 +2562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
               results.push(result);
             }
-            
+
             response = `Results submitted successfully!\n\nCenter: ${finalSessionData.centerName}\nCategory: ${finalSessionData.category}\nTotal Valid: ${finalSessionData.totalVotes}\nInvalid: ${invalidVotes}\n\nSubmit another category?\n1. Presidential\n2. MP\n3. Councilor\n0. Exit`;
             await storage.updateUssdSession(sessionId, "submit_results_category", {
               pollingCenterId: finalSessionData.pollingCenterId,
@@ -2543,11 +2574,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             response = `Error submitting results. Please try again.\nEnter invalid votes (or 0):`;
           }
           break;
-          
+
         case "check_status":
           const statusCenterCode = text.toUpperCase();
           const statusCenter = await storage.getPollingCenterByCode(statusCenterCode);
-          
+
           if (!statusCenter) {
             response = `Invalid polling center code. Please try again:`;
           } else {
@@ -2558,12 +2589,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continueSession = false;
           }
           break;
-          
+
         default:
           response = `Welcome to PTC Election System\n1. Register as Agent\n${authenticatedUser?.isApproved ? '2. Submit Results\n' : ''}3. Check Status\n0. Exit`;
           await storage.updateUssdSession(sessionId, "menu_selection", {});
       }
-      
+
       // Africa's Talking expects CON for continue, END for terminate
       const prefix = continueSession ? "CON" : "END";
       res.type('text/plain').send(`${prefix} ${response}`);
@@ -2577,7 +2608,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/files/:filename", isAuthenticated, (req, res) => {
     const filename = req.params.filename;
     const filePath = path.join(uploadDir, filename);
-    
+
     if (fs.existsSync(filePath)) {
       res.sendFile(filePath);
     } else {
@@ -2640,7 +2671,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             uploadedAt: new Date().toISOString(),
           });
         }
-        
+
         // Update complaint with evidence
         await storage.updateComplaint(complaint.id, {
           evidence: evidenceFiles,
@@ -2671,7 +2702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/complaints/:id/escalate", isAuthenticated, async (req: any, res) => {
     try {
       const user = req.user;
-      
+
       // Only supervisors and admins can escalate complaints
       if (user?.role !== 'supervisor' && user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied. Supervisor or admin role required." });
@@ -2718,7 +2749,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/complaints/:id/status", isAuthenticated, async (req: any, res) => {
     try {
       const user = req.user;
-      
+
       // Only supervisors and admins can resolve/dismiss complaints
       if (user?.role !== 'supervisor' && user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied. Supervisor or admin role required." });
@@ -2849,6 +2880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // WebSocket server for real-time updates
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  app.set('wss', wss); // Make wss available in request object
 
   // Periodic analytics broadcast (every 30 seconds)
   setInterval(async () => {
@@ -2860,14 +2892,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }, 30000);
 
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws: any) => { // Added type assertion for ws
     console.log('New WebSocket connection');
     wsConnections.add(ws);
+
+    // Store user role on the WebSocket connection if available from the authenticated request
+    // This assumes that the user object is attached to the request during authentication
+    // and can be accessed here. If not, this part might need adjustment.
+    // For example, if the client sends a token upon connection, you'd validate it here.
+    // For simplicity, we'll assume the user info is somehow available or will be passed.
+    // ws.userRole = getUserRoleFromAuth(ws); // Placeholder for actual logic
 
     ws.on('message', async (message) => {
       try {
         const data = JSON.parse(message.toString());
-        
+
         if (data.type === 'REQUEST_ANALYTICS') {
           const analytics = await getRealTimeAnalytics();
           if (analytics && ws.readyState === WebSocket.OPEN) {
