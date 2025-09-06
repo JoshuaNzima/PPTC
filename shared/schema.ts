@@ -32,7 +32,7 @@ export const userRoleEnum = pgEnum('user_role', ['agent', 'supervisor', 'admin',
 export const resultStatusEnum = pgEnum('result_status', ['pending', 'verified', 'flagged', 'rejected']);
 
 // Submission channel enum
-export const submissionChannelEnum = pgEnum('submission_channel', ['whatsapp', 'portal', 'ussd', 'both']);
+export const submissionChannelEnum = pgEnum('submission_channel', ['whatsapp', 'portal', 'ussd', 'sms', 'both']);
 
 // Candidate category enum
 export const candidateCategoryEnum = pgEnum('candidate_category', ['president', 'mp', 'councilor']);
@@ -484,6 +484,18 @@ export const whatsappProviders = pgTable("whatsapp_providers", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// SMS Provider configurations
+export const smsProviders = pgTable("sms_providers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").unique().notNull(),
+  type: varchar("type").notNull(), // 'twilio', 'clickatell', 'messagebird', 'africas_talking', 'custom'
+  isActive: boolean("is_active").default(true).notNull(),
+  isPrimary: boolean("is_primary").default(false).notNull(), // Only one primary provider
+  configuration: jsonb("configuration").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
@@ -509,6 +521,7 @@ export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type UssdSession = typeof ussdSessions.$inferSelect;
 export type UssdProvider = typeof ussdProviders.$inferSelect;
 export type WhatsappProvider = typeof whatsappProviders.$inferSelect;
+export type SmsProvider = typeof smsProviders.$inferSelect;
 export type Complaint = typeof complaints.$inferSelect;
 export type InsertComplaint = z.infer<typeof insertComplaintSchema>;
 
@@ -522,7 +535,7 @@ export type ResultWithRelations = Result & {
 
 export type UserRole = 'agent' | 'supervisor' | 'admin' | 'observer';
 export type ResultStatus = 'pending' | 'verified' | 'flagged' | 'rejected';
-export type SubmissionChannel = 'whatsapp' | 'portal' | 'ussd' | 'both';
+export type SubmissionChannel = 'whatsapp' | 'portal' | 'ussd' | 'sms' | 'both';
 export type CandidateCategory = 'president' | 'mp' | 'councilor';
 export type ComplaintStatus = 'submitted' | 'under_review' | 'resolved' | 'dismissed';
 export type ComplaintPriority = 'low' | 'medium' | 'high' | 'urgent';

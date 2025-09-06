@@ -13,6 +13,7 @@ import {
   ussdSessions,
   ussdProviders,
   whatsappProviders,
+  smsProviders,
   type User,
   type UpsertUser,
   type PollingCenter,
@@ -38,6 +39,7 @@ import {
   type UssdSession,
   type UssdProvider,
   type WhatsappProvider,
+  type SmsProvider,
   type UserRole,
   type ResultStatus,
   type CandidateCategory,
@@ -1257,6 +1259,69 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date() 
       })
       .where(eq(whatsappProviders.id, id))
+      .returning();
+    return provider;
+  }
+
+  // SMS Provider management
+  async getSmsProviders(): Promise<SmsProvider[]> {
+    return await db.select().from(smsProviders).where(eq(smsProviders.isActive, true));
+  }
+
+  async createSmsProvider(provider: { name: string; type: string; configuration: any; isPrimary?: boolean }): Promise<SmsProvider> {
+    // If setting as primary, first unset all other primary providers
+    if (provider.isPrimary) {
+      await db
+        .update(smsProviders)
+        .set({ isPrimary: false, updatedAt: new Date() })
+        .where(eq(smsProviders.isPrimary, true));
+    }
+
+    const [newProvider] = await db
+      .insert(smsProviders)
+      .values(provider)
+      .returning();
+    return newProvider;
+  }
+
+  async updateSmsProvider(id: string, updates: { isActive?: boolean; configuration?: any; isPrimary?: boolean }): Promise<SmsProvider> {
+    const updateData: any = { updatedAt: new Date() };
+    if (typeof updates.isActive === 'boolean') updateData.isActive = updates.isActive;
+    if (typeof updates.isPrimary === 'boolean') {
+      // If setting as primary, first unset all other primary providers
+      if (updates.isPrimary) {
+        await db
+          .update(smsProviders)
+          .set({ isPrimary: false, updatedAt: new Date() })
+          .where(eq(smsProviders.isPrimary, true));
+      }
+      updateData.isPrimary = updates.isPrimary;
+    }
+    if (updates.configuration) updateData.configuration = updates.configuration;
+
+    const [provider] = await db
+      .update(smsProviders)
+      .set(updateData)
+      .where(eq(smsProviders.id, id))
+      .returning();
+    return provider;
+  }
+
+  async setPrimarySmsProvider(id: string): Promise<SmsProvider> {
+    // First unset all primary providers
+    await db
+      .update(smsProviders)
+      .set({ isPrimary: false, updatedAt: new Date() })
+      .where(eq(smsProviders.isPrimary, true));
+
+    // Then set the specified provider as primary
+    const [provider] = await db
+      .update(smsProviders)
+      .set({ 
+        isPrimary: true,
+        updatedAt: new Date() 
+      })
+      .where(eq(smsProviders.id, id))
       .returning();
     return provider;
   }
