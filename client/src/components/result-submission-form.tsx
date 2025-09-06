@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,11 +14,11 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import FileUpload from "./file-upload";
-import { NotebookPen, Save, Users, Eye } from "lucide-react";
+import { NotebookPen, Save, Users, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const formSchema = z.object({
   pollingCenterId: z.string().min(1, "Polling center is required"),
@@ -36,6 +37,7 @@ export default function ResultSubmissionForm() {
   const [files, setFiles] = useState<File[]>([]);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [pendingSubmission, setPendingSubmission] = useState<FormData | null>(null);
+  const [expandedCandidate, setExpandedCandidate] = useState<string | null>(null);
 
   const { data: pollingCenters } = useQuery({
     queryKey: ["/api/polling-centers"],
@@ -189,37 +191,58 @@ export default function ResultSubmissionForm() {
     });
   };
 
+  const filteredCandidates = candidates && Array.isArray(candidates) ? 
+    (candidates as any[]).filter((c: any) => {
+      // Filter by category first
+      if (c.category !== form.watch("category")) return false;
+      
+      // For presidential elections, show all presidential candidates (no constituency restriction)
+      if (form.watch("category") === "president") return true;
+      
+      // For MP and councilor elections, filter by constituency
+      const selectedPollingCenter = (pollingCenters as any[])?.find((pc: any) => pc.id === form.watch("pollingCenterId"));
+      if (!selectedPollingCenter) return false; // Don't show any if no polling center selected for MP/councilor
+      
+      return c.constituency === selectedPollingCenter.constituency;
+    }).sort((a: any, b: any) => {
+      const partyA = (politicalParties as any[])?.find((p: any) => p.id === a.partyId || p.name === a.party)?.name || a.party;
+      const partyB = (politicalParties as any[])?.find((p: any) => p.id === b.partyId || p.name === b.party)?.name || b.party;
+      return partyA.localeCompare(partyB);
+    }) : [];
+
   return (
     <>
-    <Card className="border shadow-sm">
-      <CardHeader className="border-b">
-        <CardTitle data-testid="text-submission-form-title">Submit New Results</CardTitle>
-        <p className="text-sm text-gray-600">Enter polling center results and upload verification documents</p>
-      </CardHeader>
-      <CardContent className="p-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="border rounded-lg p-6 bg-gradient-to-r from-green-50 to-emerald-50 mb-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">1</span>
-                Polling Center Selection
-              </h4>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Step 1: Polling Center Selection */}
+      <Card className="border shadow-sm">
+        <CardHeader className="border-b pb-4">
+          <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+            <span className="bg-green-500 text-white rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-sm">1</span>
+            Polling Center
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
               <FormField
                 control={form.control}
                 name="pollingCenterId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-base font-medium">Polling Center</FormLabel>
+                    <FormLabel className="text-base font-medium">Select Polling Center</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-12" data-testid="select-polling-center">
-                          <SelectValue placeholder="Select polling center" />
+                        <SelectTrigger className="h-12 touch-target" data-testid="select-polling-center">
+                          <SelectValue placeholder="Choose polling center" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {pollingCenters && Array.isArray(pollingCenters) && (pollingCenters as any[]).map((center: any) => (
                           <SelectItem key={center.id} value={center.id}>
-                            {center.code} - {center.name}
+                            <div className="flex flex-col">
+                              <span className="font-medium">{center.code}</span>
+                              <span className="text-sm text-gray-600">{center.name}</span>
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -228,22 +251,16 @@ export default function ResultSubmissionForm() {
                   </FormItem>
                 )}
               />
-            </div>
 
-            <div className="border rounded-lg p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
-              <h4 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">2</span>
-                Election Results Entry
-              </h4>
               <FormField
                 control={form.control}
                 name="category"
                 render={({ field }) => (
-                  <FormItem className="mb-6">
+                  <FormItem>
                     <FormLabel className="text-base font-medium">Election Category</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-category">
                       <FormControl>
-                        <SelectTrigger className="h-12">
+                        <SelectTrigger className="h-12 touch-target">
                           <SelectValue placeholder="Select election category" />
                         </SelectTrigger>
                       </FormControl>
@@ -257,194 +274,195 @@ export default function ResultSubmissionForm() {
                   </FormItem>
                 )}
               />
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
 
-              {/* Candidate Votes Section */}
-              <div className="space-y-6">
-                <h5 className="text-base font-medium text-gray-800">Candidate Votes</h5>
+      {/* Step 2: Candidate Votes */}
+      <Card className="border shadow-sm">
+        <CardHeader className="border-b pb-4">
+          <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+            <span className="bg-blue-500 text-white rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-sm">2</span>
+            Candidate Votes
+            <Badge variant="outline" className="ml-auto">
+              {(() => {
+                const category = form.watch("category");
+                return category === "president" ? "Presidential" : 
+                       category === "mp" ? "MP" : "Councilor";
+              })()}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <div className="space-y-3">
+            {filteredCandidates.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-sm">
+                  {form.watch("pollingCenterId") ? 
+                    "No candidates found for selected criteria" : 
+                    "Select a polling center to view candidates"
+                  }
+                </p>
+              </div>
+            ) : (
+              filteredCandidates.map((candidate: any) => {
+                const party = (politicalParties as any[])?.find((p: any) => p.id === candidate.partyId || p.name === candidate.party);
+                const fieldName = form.watch("category") === "president" ? "presidentialVotes" :
+                                form.watch("category") === "mp" ? "mpVotes" : "councilorVotes";
                 
-                <div className="flex items-center gap-2 mb-4">
-                  <Users className="h-5 w-5 text-blue-600" />
-                  <h5 className="text-base font-medium text-gray-800">Candidate Votes</h5>
-                  <Badge variant="outline" className="ml-auto">
-                    {(() => {
-                      const category = form.watch("category");
-                      return category === "president" ? "Presidential" : 
-                             category === "mp" ? "MP" : "Councilor";
-                    })()}
-                  </Badge>
-                </div>
-                
-                <div className="border rounded-lg overflow-hidden">
-                  <ScrollArea className="h-[400px]">
-                    <Table>
-                      <TableHeader className="sticky top-0 bg-gray-50">
-                        <TableRow>
-                          <TableHead className="w-[40%]">Candidate</TableHead>
-                          <TableHead className="w-[30%]">Party</TableHead>
-                          {form.watch("category") !== "president" && (
-                            <TableHead className="w-[20%]">Constituency</TableHead>
-                          )}
-                          <TableHead className="w-[10%] text-right">Votes</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {candidates && Array.isArray(candidates) && 
-                         (candidates as any[])
-                          .filter((c: any) => {
-                            // Filter by category first
-                            if (c.category !== form.watch("category")) return false;
-                            
-                            // For presidential elections, show all presidential candidates (no constituency restriction)
-                            if (form.watch("category") === "president") return true;
-                            
-                            // For MP and councilor elections, filter by constituency
-                            const selectedPollingCenter = (pollingCenters as any[])?.find((pc: any) => pc.id === form.watch("pollingCenterId"));
-                            if (!selectedPollingCenter) return false; // Don't show any if no polling center selected for MP/councilor
-                            
-                            return c.constituency === selectedPollingCenter.constituency;
-                          })
-                          .sort((a: any, b: any) => {
-                            const partyA = (politicalParties as any[])?.find((p: any) => p.id === a.partyId || p.name === a.party)?.name || a.party;
-                            const partyB = (politicalParties as any[])?.find((p: any) => p.id === b.partyId || p.name === b.party)?.name || b.party;
-                            return partyA.localeCompare(partyB);
-                          })
-                          .map((candidate: any) => {
-                            const party = (politicalParties as any[])?.find((p: any) => p.id === candidate.partyId || p.name === candidate.party);
-                            const fieldName = form.watch("category") === "president" ? "presidentialVotes" :
-                                            form.watch("category") === "mp" ? "mpVotes" : "councilorVotes";
-                            
-                            return (
-                              <TableRow key={candidate.id} className="hover:bg-gray-50">
-                                <TableCell className="font-medium">{candidate.name}</TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <div 
-                                      className="w-3 h-3 rounded-full flex-shrink-0" 
-                                      style={{ backgroundColor: party?.color || "#6B7280" }}
-                                    />
-                                    <span className="text-sm font-medium truncate">
-                                      {party?.abbreviation || party?.name || candidate.party}
-                                    </span>
-                                  </div>
-                                </TableCell>
-                                {form.watch("category") !== "president" && (
-                                  <TableCell className="text-sm text-gray-600">
-                                    {candidate.constituency}
-                                  </TableCell>
-                                )}
-                                <TableCell className="text-right">
-                                  <FormField
-                                    control={form.control}
-                                    name={`${fieldName}.${candidate.id}`}
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormControl>
-                                          <Input 
-                                            type="number" 
-                                            min="0" 
-                                            className="w-20 text-right" 
-                                            placeholder="0"
-                                            {...field}
-                                            value={field.value || ""}
-                                            onChange={(e) => field.onChange(e.target.value)}
-                                            data-testid={`input-votes-${candidate.id}`} 
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
+                return (
+                  <Card key={candidate.id} className="border">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div 
+                              className="w-4 h-4 rounded-full flex-shrink-0" 
+                              style={{ backgroundColor: party?.color || "#6B7280" }}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-medium text-sm sm:text-base truncate">{candidate.name}</h4>
+                              <p className="text-xs sm:text-sm text-gray-600 truncate">
+                                {party?.name || candidate.party}
+                              </p>
+                              {form.watch("category") !== "president" && (
+                                <p className="text-xs text-gray-500">{candidate.constituency}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 w-20 sm:w-24">
+                          <FormField
+                            control={form.control}
+                            name={`${fieldName}.${candidate.id}`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    min="0" 
+                                    className="text-right h-10 sm:h-12 touch-target" 
+                                    placeholder="0"
+                                    {...field}
+                                    value={field.value || ""}
+                                    onChange={(e) => field.onChange(e.target.value)}
+                                    data-testid={`input-votes-${candidate.id}`} 
                                   />
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })
-                        }
-                      </TableBody>
-                    </Table>
-                  </ScrollArea>
-                </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
 
-
-              </div>
-              
-              <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                <FormField
-                  control={form.control}
-                  name="invalidVotes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-base font-medium text-orange-800">Invalid Votes</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="0" className="w-full md:w-1/3 h-12 border-orange-300 focus:border-orange-500" {...field} data-testid="input-invalid-votes" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            <div className="border rounded-lg p-6 bg-gradient-to-r from-purple-50 to-pink-50">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">3</span>
-                Documentation & Verification
-              </h4>
-              <FileUpload files={files} onFilesChange={setFiles} />
-            </div>
-
-            <div className="border rounded-lg p-6 bg-gradient-to-r from-gray-50 to-slate-50">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="bg-gray-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">4</span>
-                Additional Information
-              </h4>
+          {/* Invalid Votes */}
+          <Card className="mt-6 bg-orange-50 border-orange-200">
+            <CardContent className="p-4">
               <FormField
                 control={form.control}
-                name="comments"
+                name="invalidVotes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-base font-medium">Additional Comments</FormLabel>
+                    <FormLabel className="text-base font-medium text-orange-800">Invalid Votes</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Any observations or issues during the voting process..."
-                        className="min-h-[100px]"
-                        {...field}
-                        data-testid="textarea-comments"
+                      <Input 
+                        type="number" 
+                        min="0" 
+                        className="h-12 border-orange-300 focus:border-orange-500 touch-target" 
+                        placeholder="Enter number of invalid votes"
+                        {...field} 
+                        data-testid="input-invalid-votes" 
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
+            </CardContent>
+          </Card>
+        </CardContent>
+      </Card>
 
-            <div className="flex items-center space-x-4">
-              <Button 
-                type="submit" 
-                disabled={submitMutation.isPending}
-                className="bg-primary-500 hover:bg-primary-600"
-                data-testid="button-submit-results"
-              >
-                <NotebookPen className="h-4 w-4 mr-2" />
-                {submitMutation.isPending ? "Submitting..." : "Submit Results"}
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={handleSaveDraft}
-                data-testid="button-save-draft"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Save as Draft
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+      {/* Step 3: Documentation */}
+      <Card className="border shadow-sm">
+        <CardHeader className="border-b pb-4">
+          <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+            <span className="bg-purple-500 text-white rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-sm">3</span>
+            Documentation
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <FileUpload files={files} onFilesChange={setFiles} />
+        </CardContent>
+      </Card>
+
+      {/* Step 4: Comments */}
+      <Card className="border shadow-sm">
+        <CardHeader className="border-b pb-4">
+          <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+            <span className="bg-gray-500 text-white rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-sm">4</span>
+            Additional Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <FormField
+            control={form.control}
+            name="comments"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-base font-medium">Comments (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Any observations or issues during the voting process..."
+                    className="min-h-[100px] touch-target"
+                    {...field}
+                    data-testid="textarea-comments"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Submit Actions */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
+        <Button 
+          type="submit" 
+          disabled={submitMutation.isPending}
+          className="w-full sm:w-auto bg-primary-500 hover:bg-primary-600 h-12 touch-target"
+          onClick={form.handleSubmit(onSubmit)}
+          data-testid="button-submit-results"
+        >
+          <NotebookPen className="h-4 w-4 mr-2" />
+          {submitMutation.isPending ? "Submitting..." : "Submit Results"}
+        </Button>
+        <Button 
+          type="button" 
+          variant="outline"
+          onClick={handleSaveDraft}
+          className="w-full sm:w-auto h-12 touch-target"
+          data-testid="button-save-draft"
+        >
+          <Save className="h-4 w-4 mr-2" />
+          Save as Draft
+        </Button>
+      </div>
+    </div>
     
     {/* Confirmation Modal */}
     <AlertDialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
-      <AlertDialogContent className="max-w-2xl">
+      <AlertDialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5 text-blue-600" />
@@ -455,79 +473,90 @@ export default function ResultSubmissionForm() {
           </AlertDialogDescription>
         </AlertDialogHeader>
         
-        <div className="space-y-4 py-4">
-          {pendingSubmission && (() => {
-            const summaryData = getSummaryData();
-            const selectedCenter = (pollingCenters as any[])?.find((c: any) => c.id === pendingSubmission.pollingCenterId);
-            const categoryLabel = pendingSubmission.category === "president" ? "Presidential" :
-                                pendingSubmission.category === "mp" ? "Members of Parliament" : "Councilor";
-            
-            return (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-600">Polling Center:</span>
-                    <p className="font-medium">{selectedCenter?.code} - {selectedCenter?.name}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-600">Category:</span>
-                    <p className="font-medium">{categoryLabel}</p>
-                  </div>
-                </div>
-                
-                {summaryData?.candidateVotes && summaryData.candidateVotes.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-800 mb-2">Candidate Votes</h4>
-                    <div className="border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="text-left p-2 font-medium">Candidate</th>
-                            <th className="text-left p-2 font-medium">Party</th>
-                            <th className="text-right p-2 font-medium">Votes</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {summaryData.candidateVotes.map((cv: any, idx: number) => (
-                            <tr key={idx} className="border-t">
-                              <td className="p-2">{cv.candidate}</td>
-                              <td className="p-2">{cv.party}</td>
-                              <td className="p-2 text-right font-medium">{cv.votes.toLocaleString()}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+        <ScrollArea className="max-h-[50vh] sm:max-h-[60vh]">
+          <div className="space-y-4 py-4">
+            {pendingSubmission && (() => {
+              const summaryData = getSummaryData();
+              const selectedCenter = (pollingCenters as any[])?.find((c: any) => c.id === pendingSubmission.pollingCenterId);
+              const categoryLabel = pendingSubmission.category === "president" ? "Presidential" :
+                                  pendingSubmission.category === "mp" ? "Members of Parliament" : "Councilor";
+              
+              return (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-600">Polling Center:</span>
+                      <p className="font-medium break-words">{selectedCenter?.code} - {selectedCenter?.name}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-600">Category:</span>
+                      <p className="font-medium">{categoryLabel}</p>
                     </div>
                   </div>
-                )}
-                
-                <div className="flex justify-between items-center pt-2 border-t">
-                  <div className="text-sm">
-                    <span className="font-medium text-gray-600">Invalid Votes: </span>
-                    <span className="font-medium">{summaryData?.invalidVotes || 0}</span>
+                  
+                  {summaryData?.candidateVotes && summaryData.candidateVotes.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-gray-800 mb-2">Candidate Votes</h4>
+                      <div className="space-y-2 sm:hidden">
+                        {summaryData.candidateVotes.map((cv: any, idx: number) => (
+                          <div key={idx} className="bg-gray-50 p-3 rounded-lg">
+                            <div className="font-medium">{cv.candidate}</div>
+                            <div className="text-sm text-gray-600">{cv.party}</div>
+                            <div className="font-bold text-blue-600">{cv.votes.toLocaleString()} votes</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="hidden sm:block border rounded-lg overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="text-left p-2 font-medium">Candidate</th>
+                              <th className="text-left p-2 font-medium">Party</th>
+                              <th className="text-right p-2 font-medium">Votes</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {summaryData.candidateVotes.map((cv: any, idx: number) => (
+                              <tr key={idx} className="border-t">
+                                <td className="p-2">{cv.candidate}</td>
+                                <td className="p-2">{cv.party}</td>
+                                <td className="p-2 text-right font-medium">{cv.votes.toLocaleString()}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-2 border-t gap-2">
+                    <div className="text-sm">
+                      <span className="font-medium text-gray-600">Invalid Votes: </span>
+                      <span className="font-medium">{summaryData?.invalidVotes || 0}</span>
+                    </div>
+                    <div className="text-lg font-bold">
+                      <span className="text-gray-600">Total Votes: </span>
+                      <span className="text-blue-600">{summaryData?.totalVotes || 0}</span>
+                    </div>
                   </div>
-                  <div className="text-lg font-bold">
-                    <span className="text-gray-600">Total Votes: </span>
-                    <span className="text-blue-600">{summaryData?.totalVotes || 0}</span>
-                  </div>
+                  
+                  {pendingSubmission.comments && (
+                    <div>
+                      <span className="font-medium text-gray-600">Comments:</span>
+                      <p className="text-sm bg-gray-50 p-2 rounded break-words">{pendingSubmission.comments}</p>
+                    </div>
+                  )}
                 </div>
-                
-                {pendingSubmission.comments && (
-                  <div>
-                    <span className="font-medium text-gray-600">Comments:</span>
-                    <p className="text-sm bg-gray-50 p-2 rounded">{pendingSubmission.comments}</p>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </div>
+              );
+            })()}
+          </div>
+        </ScrollArea>
         
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+          <AlertDialogCancel className="w-full sm:w-auto touch-target">Cancel</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleConfirmSubmit}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 touch-target"
           >
             Confirm & Submit
           </AlertDialogAction>
