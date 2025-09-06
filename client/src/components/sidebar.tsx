@@ -107,12 +107,14 @@ export default function Sidebar() {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-80 p-0">
+          <SheetContent side="left" className="w-80 p-0 flex flex-col">
             <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
             <SheetDescription className="sr-only">
               {t("nav.description") || "Navigate through the application sections"}
             </SheetDescription>
-            <SidebarContent onItemClick={() => setMobileOpen(false)} />
+            <div className="flex-1 overflow-y-auto">
+              <SidebarContent onItemClick={() => setMobileOpen(false)} />
+            </div>
           </SheetContent>
         </Sheet>
       </div>
