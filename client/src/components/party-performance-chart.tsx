@@ -88,15 +88,15 @@ export default function PartyPerformanceChart() {
   return (
     <Card className="border shadow-sm">
       <CardHeader className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <CardTitle className="flex items-center space-x-2">
             <TrendingUp className="h-5 w-5" />
-            <span>Party Performance</span>
+            <span className="text-lg sm:text-xl">Party Performance</span>
           </CardTitle>
           
-          <div className="flex space-x-2">
+          <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
             <Select value={chartType} onValueChange={(value: 'bar' | 'pie') => setChartType(value)}>
-              <SelectTrigger className="w-24">
+              <SelectTrigger className="w-full sm:w-24 min-h-[44px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -106,7 +106,7 @@ export default function PartyPerformanceChart() {
             </Select>
             
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full sm:w-40 min-h-[44px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -120,7 +120,7 @@ export default function PartyPerformanceChart() {
         </div>
 
         {/* Performance Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-blue-50 p-3 rounded-lg">
             <div className="flex items-center space-x-2">
               <Award className="h-4 w-4 text-blue-600" />

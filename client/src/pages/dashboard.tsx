@@ -48,25 +48,26 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-8">
       {/* Enhanced Dashboard Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div>
           <h1
-            className="text-3xl font-bold text-gray-900"
+            className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900"
             data-testid="text-dashboard-title"
           >
             {t("dashboard.title")}
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-sm sm:text-base text-gray-600 mt-1 leading-relaxed">
             {t("dashboard.subtitle")}
           </p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
           <Button
             variant="outline"
             onClick={handleRefreshData}
             data-testid="button-refresh-data"
+            className="w-full sm:w-auto"
           >
             <RefreshCw className="mr-2 h-4 w-4" />
             {t("common.refresh")}
@@ -74,6 +75,7 @@ export default function Dashboard() {
           <Button
             onClick={handleExportReport}
             data-testid="button-export-report"
+            className="w-full sm:w-auto"
           >
             <Download className="mr-2 h-4 w-4" />
             {t("common.export")}

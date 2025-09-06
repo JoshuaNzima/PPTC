@@ -97,12 +97,12 @@ export function RealTimeAnalytics() {
   return (
     <div className="space-y-6" data-testid="real-time-analytics">
       {/* Connection Status */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div className="flex items-center gap-2">
           <div
             className={`w-3 h-3 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
           />
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs sm:text-sm text-muted-foreground">
             {isConnected ? "Live Updates Active" : "Connecting..."}
           </span>
         </div>
@@ -114,7 +114,7 @@ export function RealTimeAnalytics() {
 
       {/* Overview Stats */}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card data-testid="stat-total-centers">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
