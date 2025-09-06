@@ -188,7 +188,7 @@ export default function MECResults() {
   };
 
   // Filter results
-  const filteredResults = mecResults?.results?.filter((result: any) => {
+  const filteredResults = mecResults?.mecResults?.filter((result: any) => {
     const matchesSearch = result.mecReferenceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          result.constituencyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          result.pollingCenterName?.toLowerCase().includes(searchTerm.toLowerCase());
