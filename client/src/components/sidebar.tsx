@@ -26,20 +26,20 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 const getNavigation = (t: (key: string) => string) => [
-  { name: t("nav.dashboard"), href: "/", icon: BarChart3, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
+  { name: t("nav.dashboard"), href: "/", icon: BarChart3, roles: ["agent", "supervisor", "admin", "observer"] },
   { name: t("nav.submit_results"), href: "/submit-results", icon: Plus, roles: ["agent", "supervisor", "admin"] },
-  { name: t("nav.mec_results"), href: "/mec-results", icon: Building2, roles: ["admin", "supervisor", "reviewer", "president", "mp"] },
-  { name: t("nav.results_comparison"), href: "/results-comparison", icon: GitCompare, roles: ["admin", "supervisor", "reviewer", "president", "mp"] },
-  { name: t("nav.complaints"), href: "/complaints", icon: MessageSquare, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
+  { name: t("nav.mec_results"), href: "/mec-results", icon: Building2, roles: ["admin", "supervisor", "observer"] },
+  { name: t("nav.results_comparison"), href: "/results-comparison", icon: GitCompare, roles: ["admin", "supervisor", "observer"] },
+  { name: t("nav.complaints"), href: "/complaints", icon: MessageSquare, roles: ["agent", "supervisor", "admin", "observer"] },
   { name: t("nav.verify_results"), href: "/verify-results", icon: CheckCircle, roles: ["supervisor", "admin"] },
-  { name: t("nav.review_flagged"), href: "/review-flagged", icon: AlertTriangle, roles: ["reviewer", "admin"] },
-  { name: t("nav.reports"), href: "/reports", icon: FileText, roles: ["supervisor", "admin", "reviewer", "president", "mp"] },
+  { name: t("nav.review_flagged"), href: "/review-flagged", icon: AlertTriangle, roles: ["supervisor", "admin"] },
+  { name: t("nav.reports"), href: "/reports", icon: FileText, roles: ["supervisor", "admin", "observer"] },
   { name: t("nav.user_management"), href: "/user-management", icon: Users, roles: ["admin"] },
   { name: t("nav.political_parties"), href: "/political-parties", icon: Shield, roles: ["admin", "supervisor"] },
   { name: t("nav.data_management"), href: "/data-management", icon: Database, roles: ["admin"] },
   { name: t("nav.admin_management"), href: "/admin-management", icon: Settings, roles: ["admin"] },
-  { name: t("nav.audit_trail"), href: "/audit-trail", icon: History, roles: ["supervisor", "admin", "reviewer"] },
-  { name: t("nav.profile"), href: "/profile", icon: User, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
+  { name: t("nav.audit_trail"), href: "/audit-trail", icon: History, roles: ["supervisor", "admin"] },
+  { name: t("nav.profile"), href: "/profile", icon: User, roles: ["agent", "supervisor", "admin", "observer"] },
 ];
 
 function SidebarContent({ onItemClick, collapsed = false }: { onItemClick?: () => void; collapsed?: boolean }) {
