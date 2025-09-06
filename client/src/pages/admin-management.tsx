@@ -1866,6 +1866,393 @@ export default function AdminManagement() {
               </CardContent>
             </Card>
 
+            {/* SMS Integration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  SMS Integration
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Enable SMS Services</p>
+                      <p className="text-sm text-gray-600">
+                        Allow agents to register and submit results via SMS
+                      </p>
+                    </div>
+                    <Checkbox
+                      checked={apiSettings.smsEnabled}
+                      onCheckedChange={(checked) =>
+                        setApiSettings(prev => ({ ...prev, smsEnabled: checked as boolean }))
+                      }
+                      data-testid="checkbox-sms-enabled"
+                    />
+                  </div>
+
+                  {apiSettings.smsEnabled && (
+                    <div className="space-y-4 border-l-4 border-orange-500 pl-4">
+                      {/* Current SMS providers display */}
+                      <div className="space-y-3">
+                        <p className="font-medium text-orange-900">Available SMS Providers</p>
+                        {smsProviders?.map((provider: any) => (
+                          <div key={provider.id} className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-2 h-2 rounded-full ${provider.isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
+                              <div>
+                                <p className="font-medium text-orange-900 capitalize">{provider.providerType}</p>
+                                <p className="text-sm text-orange-700">{provider.name}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setConfiguringProvider({ type: 'sms', id: provider.id, config: provider.configuration })}
+                                data-testid={`button-configure-sms-${provider.id}`}
+                              >
+                                <Settings className="h-3 w-3" />
+                              </Button>
+                              <Checkbox
+                                checked={provider.isActive}
+                                onCheckedChange={(checked) =>
+                                  toggleSmsProviderMutation.mutate({ id: provider.id, isActive: checked as boolean })
+                                }
+                                data-testid={`checkbox-sms-provider-${provider.id}`}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Twilio SMS */}
+                      <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <p className="font-medium text-blue-900">Twilio SMS</p>
+                            <p className="text-sm text-blue-700">Global SMS service provider</p>
+                          </div>
+                          <Checkbox
+                            checked={apiSettings.smsProviders.twilio.enabled}
+                            onCheckedChange={(checked) =>
+                              setApiSettings(prev => ({
+                                ...prev,
+                                smsProviders: {
+                                  ...prev.smsProviders,
+                                  twilio: { ...prev.smsProviders.twilio, enabled: checked as boolean }
+                                }
+                              }))
+                            }
+                            data-testid="checkbox-twilio-sms"
+                          />
+                        </div>
+                        {apiSettings.smsProviders.twilio.enabled && (
+                          <div className="grid grid-cols-1 gap-3 mt-3">
+                            <div>
+                              <label className="text-sm font-medium text-blue-900">Account SID</label>
+                              <Input
+                                value={apiSettings.smsProviders.twilio.accountSid}
+                                onChange={(e) =>
+                                  setApiSettings(prev => ({
+                                    ...prev,
+                                    smsProviders: {
+                                      ...prev.smsProviders,
+                                      twilio: { ...prev.smsProviders.twilio, accountSid: e.target.value }
+                                    }
+                                  }))
+                                }
+                                placeholder="Your Twilio Account SID"
+                                data-testid="input-twilio-sms-sid"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-blue-900">Auth Token</label>
+                              <Input
+                                type="password"
+                                value={apiSettings.smsProviders.twilio.authToken}
+                                onChange={(e) =>
+                                  setApiSettings(prev => ({
+                                    ...prev,
+                                    smsProviders: {
+                                      ...prev.smsProviders,
+                                      twilio: { ...prev.smsProviders.twilio, authToken: e.target.value }
+                                    }
+                                  }))
+                                }
+                                placeholder="Your Twilio Auth Token"
+                                data-testid="input-twilio-sms-token"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-blue-900">Phone Number</label>
+                              <Input
+                                value={apiSettings.smsProviders.twilio.phoneNumber}
+                                onChange={(e) =>
+                                  setApiSettings(prev => ({
+                                    ...prev,
+                                    smsProviders: {
+                                      ...prev.smsProviders,
+                                      twilio: { ...prev.smsProviders.twilio, phoneNumber: e.target.value }
+                                    }
+                                  }))
+                                }
+                                placeholder="+1234567890"
+                                data-testid="input-twilio-sms-phone"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Clickatell SMS */}
+                      <div className="bg-orange-50 border border-orange-200 rounded p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <p className="font-medium text-orange-900">Clickatell SMS</p>
+                            <p className="text-sm text-orange-700">Enterprise SMS platform</p>
+                          </div>
+                          <Checkbox
+                            checked={apiSettings.smsProviders.clickatell.enabled}
+                            onCheckedChange={(checked) =>
+                              setApiSettings(prev => ({
+                                ...prev,
+                                smsProviders: {
+                                  ...prev.smsProviders,
+                                  clickatell: { ...prev.smsProviders.clickatell, enabled: checked as boolean }
+                                }
+                              }))
+                            }
+                            data-testid="checkbox-clickatell-sms"
+                          />
+                        </div>
+                        {apiSettings.smsProviders.clickatell.enabled && (
+                          <div className="grid grid-cols-1 gap-3 mt-3">
+                            <div>
+                              <label className="text-sm font-medium text-orange-900">API Key</label>
+                              <Input
+                                type="password"
+                                value={apiSettings.smsProviders.clickatell.apiKey}
+                                onChange={(e) =>
+                                  setApiSettings(prev => ({
+                                    ...prev,
+                                    smsProviders: {
+                                      ...prev.smsProviders,
+                                      clickatell: { ...prev.smsProviders.clickatell, apiKey: e.target.value }
+                                    }
+                                  }))
+                                }
+                                placeholder="Your Clickatell API key"
+                                data-testid="input-clickatell-api-key"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-orange-900">Username</label>
+                              <Input
+                                value={apiSettings.smsProviders.clickatell.username}
+                                onChange={(e) =>
+                                  setApiSettings(prev => ({
+                                    ...prev,
+                                    smsProviders: {
+                                      ...prev.smsProviders,
+                                      clickatell: { ...prev.smsProviders.clickatell, username: e.target.value }
+                                    }
+                                  }))
+                                }
+                                placeholder="Your Clickatell username"
+                                data-testid="input-clickatell-username"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-orange-900">Password</label>
+                              <Input
+                                type="password"
+                                value={apiSettings.smsProviders.clickatell.password}
+                                onChange={(e) =>
+                                  setApiSettings(prev => ({
+                                    ...prev,
+                                    smsProviders: {
+                                      ...prev.smsProviders,
+                                      clickatell: { ...prev.smsProviders.clickatell, password: e.target.value }
+                                    }
+                                  }))
+                                }
+                                placeholder="Your Clickatell password"
+                                data-testid="input-clickatell-password"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* MessageBird SMS */}
+                      <div className="bg-cyan-50 border border-cyan-200 rounded p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <p className="font-medium text-cyan-900">MessageBird SMS</p>
+                            <p className="text-sm text-cyan-700">Cloud communications platform</p>
+                          </div>
+                          <Checkbox
+                            checked={apiSettings.smsProviders.messagebird.enabled}
+                            onCheckedChange={(checked) =>
+                              setApiSettings(prev => ({
+                                ...prev,
+                                smsProviders: {
+                                  ...prev.smsProviders,
+                                  messagebird: { ...prev.smsProviders.messagebird, enabled: checked as boolean }
+                                }
+                              }))
+                            }
+                            data-testid="checkbox-messagebird-sms"
+                          />
+                        </div>
+                        {apiSettings.smsProviders.messagebird.enabled && (
+                          <div className="grid grid-cols-1 gap-3 mt-3">
+                            <div>
+                              <label className="text-sm font-medium text-cyan-900">Access Key</label>
+                              <Input
+                                type="password"
+                                value={apiSettings.smsProviders.messagebird.accessKey}
+                                onChange={(e) =>
+                                  setApiSettings(prev => ({
+                                    ...prev,
+                                    smsProviders: {
+                                      ...prev.smsProviders,
+                                      messagebird: { ...prev.smsProviders.messagebird, accessKey: e.target.value }
+                                    }
+                                  }))
+                                }
+                                placeholder="Your MessageBird access key"
+                                data-testid="input-messagebird-access-key"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-cyan-900">Originator</label>
+                              <Input
+                                value={apiSettings.smsProviders.messagebird.originator}
+                                onChange={(e) =>
+                                  setApiSettings(prev => ({
+                                    ...prev,
+                                    smsProviders: {
+                                      ...prev.smsProviders,
+                                      messagebird: { ...prev.smsProviders.messagebird, originator: e.target.value }
+                                    }
+                                  }))
+                                }
+                                placeholder="Election2024"
+                                data-testid="input-messagebird-originator"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Africa's Talking SMS */}
+                      <div className="bg-green-50 border border-green-200 rounded p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <p className="font-medium text-green-900">Africa's Talking SMS</p>
+                            <p className="text-sm text-green-700">African telecommunications platform</p>
+                          </div>
+                          <Checkbox
+                            checked={apiSettings.smsProviders.africas_talking.enabled}
+                            onCheckedChange={(checked) =>
+                              setApiSettings(prev => ({
+                                ...prev,
+                                smsProviders: {
+                                  ...prev.smsProviders,
+                                  africas_talking: { ...prev.smsProviders.africas_talking, enabled: checked as boolean }
+                                }
+                              }))
+                            }
+                            data-testid="checkbox-africas-talking-sms"
+                          />
+                        </div>
+                        {apiSettings.smsProviders.africas_talking.enabled && (
+                          <div className="grid grid-cols-1 gap-3 mt-3">
+                            <div>
+                              <label className="text-sm font-medium text-green-900">Username</label>
+                              <Input
+                                value={apiSettings.smsProviders.africas_talking.username}
+                                onChange={(e) =>
+                                  setApiSettings(prev => ({
+                                    ...prev,
+                                    smsProviders: {
+                                      ...prev.smsProviders,
+                                      africas_talking: { ...prev.smsProviders.africas_talking, username: e.target.value }
+                                    }
+                                  }))
+                                }
+                                placeholder="Your Africa's Talking username"
+                                data-testid="input-africas-talking-username"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-green-900">API Key</label>
+                              <Input
+                                type="password"
+                                value={apiSettings.smsProviders.africas_talking.apiKey}
+                                onChange={(e) =>
+                                  setApiSettings(prev => ({
+                                    ...prev,
+                                    smsProviders: {
+                                      ...prev.smsProviders,
+                                      africas_talking: { ...prev.smsProviders.africas_talking, apiKey: e.target.value }
+                                    }
+                                  }))
+                                }
+                                placeholder="Your Africa's Talking API key"
+                                data-testid="input-africas-talking-api-key"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-green-900">Short Code</label>
+                              <Input
+                                value={apiSettings.smsProviders.africas_talking.shortCode}
+                                onChange={(e) =>
+                                  setApiSettings(prev => ({
+                                    ...prev,
+                                    smsProviders: {
+                                      ...prev.smsProviders,
+                                      africas_talking: { ...prev.smsProviders.africas_talking, shortCode: e.target.value }
+                                    }
+                                  }))
+                                }
+                                placeholder="12345"
+                                data-testid="input-africas-talking-short-code"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-orange-50 border border-orange-200 rounded p-3 text-sm">
+                        <p className="font-medium text-orange-900 mb-2">SMS Webhook Endpoints:</p>
+                        <div className="space-y-1 text-orange-800">
+                          <div>
+                            <strong>Twilio:</strong> <code className="bg-orange-100 px-2 py-1 rounded">{window.location.origin}/api/sms/twilio</code>
+                          </div>
+                          <div>
+                            <strong>Clickatell:</strong> <code className="bg-orange-100 px-2 py-1 rounded">{window.location.origin}/api/sms/clickatell</code>
+                          </div>
+                          <div>
+                            <strong>MessageBird:</strong> <code className="bg-orange-100 px-2 py-1 rounded">{window.location.origin}/api/sms/messagebird</code>
+                          </div>
+                          <div>
+                            <strong>Africa's Talking:</strong> <code className="bg-orange-100 px-2 py-1 rounded">{window.location.origin}/api/sms/africas-talking</code>
+                          </div>
+                        </div>
+                        <p className="text-orange-700 mt-2 text-xs">
+                          Configure these URLs in your respective SMS provider dashboards for two-way SMS communication
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Email Settings */}
             <Card>
               <CardHeader>
