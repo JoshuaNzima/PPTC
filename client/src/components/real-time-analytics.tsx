@@ -43,17 +43,18 @@ export function RealTimeAnalytics() {
   const { analytics, isConnected, requestAnalytics } = useWebSocket();
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  // Fetch initial analytics with 1-second refresh for real-time feel
+  // Fetch initial analytics with 5-second refresh for real-time feel without excessive blinking
   const { data: initialAnalytics, isLoading, refetch } = useQuery({
     queryKey: ["/api/analytics"],
-    refetchInterval: 1000, // Real-time refresh every 1 second
+    refetchInterval: 5000, // Refresh every 5 seconds instead of 1
+    staleTime: 2000, // Consider data fresh for 2 seconds
   });
 
-  // Auto-refresh every second for live analytics
+  // Auto-refresh every 5 seconds for live analytics
   useEffect(() => {
     const interval = setInterval(() => {
       refetch();
-    }, 1000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [refetch]);
