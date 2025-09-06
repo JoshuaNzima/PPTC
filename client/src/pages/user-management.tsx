@@ -32,7 +32,7 @@ const createUserSchema = z.object({
   email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
   phone: z.string().min(1, "Phone number is required").optional(),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  role: z.enum(["agent", "supervisor", "admin", "reviewer", "president", "mp"]).default("agent"),
+  role: z.enum(["agent", "supervisor", "admin", "observer"]).default("agent"),
 }).refine((data) => data.email || data.phone, {
   message: "Either email or phone number is required",
   path: ["email"],
