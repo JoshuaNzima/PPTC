@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/language-context";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
@@ -42,7 +42,7 @@ const getNavigation = (t: (key: string) => string) => [
   { name: t("nav.profile"), href: "/profile", icon: User, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
 ];
 
-function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
+function SidebarContent({ onItemClick, collapsed = false }: { onItemClick?: () => void; collapsed?: boolean }) {
   const [location] = useLocation();
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -53,7 +53,7 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
   );
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className={cn("p-4 sm:p-6", collapsed && "px-2")}>
       <div className="space-y-1">
         {filteredNavigation.map((item) => {
           const isActive = location === item.href;
@@ -64,18 +64,21 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
                   "group flex items-center px-3 py-3 text-sm sm:text-base font-medium rounded-md transition-colors cursor-pointer min-h-[44px]",
                   isActive
                     ? "bg-primary-50 text-primary-700"
-                    : "text-gray-700 hover:bg-gray-50"
+                    : "text-gray-700 hover:bg-gray-50",
+                  collapsed && "justify-center px-2"
                 )}
                 data-testid={`link-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                 onClick={onItemClick}
+                title={collapsed ? item.name : undefined}
               >
                 <item.icon
                   className={cn(
-                    "mr-3 h-5 w-5 sm:h-6 sm:w-6",
+                    "h-5 w-5 sm:h-6 sm:w-6",
+                    collapsed ? "" : "mr-3",
                     isActive ? "text-primary-500" : "text-gray-400"
                   )}
                 />
-                {item.name}
+                {!collapsed && item.name}
               </div>
             </Link>
           );
@@ -86,13 +89,15 @@ function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
 }
 
 export default function Sidebar() {
-  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <>
       {/* Mobile Sidebar */}
       <div className="lg:hidden">
-        <Sheet open={open} onOpenChange={setOpen}>
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
             <Button
               variant="ghost"
@@ -103,14 +108,31 @@ export default function Sidebar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-80 p-0">
-            <SidebarContent onItemClick={() => setOpen(false)} />
+            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+            <SheetDescription className="sr-only">
+              {t("nav.description") || "Navigate through the application sections"}
+            </SheetDescription>
+            <SidebarContent onItemClick={() => setMobileOpen(false)} />
           </SheetContent>
         </Sheet>
       </div>
       
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-64 bg-white shadow-sm h-screen">
-        <SidebarContent />
+      <aside className={cn(
+        "hidden lg:block bg-white shadow-sm h-screen transition-all duration-300",
+        desktopCollapsed ? "w-16" : "w-64"
+      )}>
+        <div className="flex justify-end p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setDesktopCollapsed(!desktopCollapsed)}
+            className="h-8 w-8 p-0"
+          >
+            {desktopCollapsed ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
+          </Button>
+        </div>
+        <SidebarContent collapsed={desktopCollapsed} />
       </aside>
     </>
   );
