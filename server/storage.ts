@@ -159,6 +159,9 @@ export interface IStorage {
 
   // Complaint operations
   getComplaints(): Promise<Complaint[]>;
+  createComplaint(complaint: InsertComplaint): Promise<Complaint>;
+  updateComplaint(complaintId: string, updates: Partial<Complaint>): Promise<Complaint>;
+  updateComplaintStatus(complaintId: string, status: string, resolutionNotes?: string, reviewedBy?: string): Promise<Complaint>;
   escalateComplaint(complaintId: string, escalationData: {
     escalatedBy: string;
     escalationReason: string;
@@ -1363,6 +1366,47 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(complaints)
       .orderBy(desc(complaints.createdAt));
+  }
+
+  async createComplaint(complaintData: InsertComplaint): Promise<Complaint> {
+    const [complaint] = await db
+      .insert(complaints)
+      .values(complaintData)
+      .returning();
+    return complaint;
+  }
+
+  async updateComplaint(complaintId: string, updates: Partial<Complaint>): Promise<Complaint> {
+    const [updatedComplaint] = await db
+      .update(complaints)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(complaints.id, complaintId))
+      .returning();
+    return updatedComplaint;
+  }
+
+  async updateComplaintStatus(complaintId: string, status: string, resolutionNotes?: string, reviewedBy?: string): Promise<Complaint> {
+    const updateData: any = {
+      status: status as any,
+      updatedAt: new Date(),
+    };
+    
+    if (resolutionNotes) {
+      updateData.resolutionNotes = resolutionNotes;
+      updateData.resolvedAt = new Date();
+    }
+    
+    if (reviewedBy) {
+      updateData.reviewedBy = reviewedBy;
+    }
+    
+    const [updatedComplaint] = await db
+      .update(complaints)
+      .set(updateData)
+      .where(eq(complaints.id, complaintId))
+      .returning();
+    
+    return updatedComplaint;
   }
 
   async escalateComplaint(complaintId: string, escalationData: {

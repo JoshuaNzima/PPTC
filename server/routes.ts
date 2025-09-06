@@ -2575,6 +2575,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Resolve or dismiss complaint
+  app.patch("/api/complaints/:id/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = req.user;
+      
+      // Only supervisors and admins can resolve/dismiss complaints
+      if (user?.role !== 'supervisor' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Supervisor or admin role required." });
+      }
+
+      const complaintId = req.params.id;
+      const { action, resolutionNotes } = req.body;
+
+      if (!action || !['resolve', 'dismiss'].includes(action)) {
+        return res.status(400).json({ message: "Valid action (resolve or dismiss) is required" });
+      }
+
+      if (!resolutionNotes?.trim()) {
+        return res.status(400).json({ message: "Resolution notes are required" });
+      }
+
+      const newStatus = action === 'resolve' ? 'resolved' : 'dismissed';
+      const updatedComplaint = await storage.updateComplaintStatus(
+        complaintId, 
+        newStatus, 
+        resolutionNotes.trim(),
+        user.id
+      );
+
+      // Log audit
+      await storage.createAuditLog({
+        userId: user.id,
+        action: action === 'resolve' ? "RESOLVE_COMPLAINT" : "DISMISS_COMPLAINT",
+        entityType: "complaint",
+        entityId: complaintId,
+        newValues: { status: newStatus, resolutionNotes: resolutionNotes.trim() },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+
+      res.json({ 
+        message: `Complaint ${action}d successfully`,
+        complaint: updatedComplaint 
+      });
+    } catch (error) {
+      console.error(`Error ${req.body.action}ing complaint:`, error);
+      res.status(500).json({ message: `Failed to ${req.body.action} complaint` });
+    }
+  });
+
   // Flag result for document mismatch
   app.post("/api/results/:id/flag-document-mismatch", isAuthenticated, async (req: any, res) => {
     try {

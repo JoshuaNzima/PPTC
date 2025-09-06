@@ -34,6 +34,9 @@ export default function Complaints() {
   const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
   const [isEscalateDialogOpen, setIsEscalateDialogOpen] = useState(false);
   const [escalationReason, setEscalationReason] = useState("");
+  const [isResolveDialogOpen, setIsResolveDialogOpen] = useState(false);
+  const [isDismissDialogOpen, setIsDismissDialogOpen] = useState(false);
+  const [resolutionNotes, setResolutionNotes] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -41,7 +44,7 @@ export default function Complaints() {
   // Fetch complaints data - disable auto-refresh when forms are open
   const { data: complaintsData, isLoading } = useQuery({
     queryKey: ["/api/complaints"],
-    refetchInterval: (isSubmitDialogOpen || isEscalateDialogOpen || isViewDialogOpen) ? false : 30000, // Disable auto-refresh when forms are open
+    refetchInterval: (isSubmitDialogOpen || isEscalateDialogOpen || isViewDialogOpen || isResolveDialogOpen || isDismissDialogOpen) ? false : 30000, // Disable auto-refresh when forms are open
     refetchIntervalInBackground: false,
   });
 
@@ -135,15 +138,71 @@ export default function Complaints() {
     });
   };
 
+  // Resolve/Dismiss complaint mutation
+  const updateComplaintStatusMutation = useMutation({
+    mutationFn: async ({ complaintId, action, resolutionNotes }: { complaintId: string; action: 'resolve' | 'dismiss'; resolutionNotes: string }) => {
+      const response = await fetch(`/api/complaints/${complaintId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, resolutionNotes }),
+      });
+      if (!response.ok) throw new Error(`Failed to ${action} complaint`);
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/complaints"] });
+      toast({
+        title: "Success",
+        description: `Complaint ${variables.action}d successfully`,
+      });
+      setIsResolveDialogOpen(false);
+      setIsDismissDialogOpen(false);
+      setResolutionNotes("");
+    },
+    onError: (error, variables) => {
+      toast({
+        title: "Error",
+        description: `Failed to ${variables.action} complaint`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleResolveComplaint = () => {
+    if (!selectedComplaint || !resolutionNotes.trim()) return;
+    updateComplaintStatusMutation.mutate({
+      complaintId: selectedComplaint.id,
+      action: 'resolve',
+      resolutionNotes,
+    });
+  };
+
+  const handleDismissComplaint = () => {
+    if (!selectedComplaint || !resolutionNotes.trim()) return;
+    updateComplaintStatusMutation.mutate({
+      complaintId: selectedComplaint.id,
+      action: 'dismiss',
+      resolutionNotes,
+    });
+  };
+
   // Check if user can submit complaints (agents, supervisors, admins)
   const canSubmitComplaint = ['agent', 'supervisor', 'admin'].includes((user as any)?.role);
   
   // Check if user can escalate complaints (supervisors, admins)
   const canEscalateComplaint = ['supervisor', 'admin'].includes((user as any)?.role);
   
+  // Check if user can resolve/dismiss complaints (supervisors, admins)
+  const canManageComplaint = ['supervisor', 'admin'].includes((user as any)?.role);
+  
   // Check if complaint can be escalated (not already escalated and not resolved)
   const canComplaintBeEscalated = (status: string) => {
-    return !['escalated_to_mec', 'mec_investigating', 'mec_resolved', 'resolved'].includes(status);
+    return !['escalated_to_mec', 'mec_investigating', 'mec_resolved', 'resolved', 'dismissed'].includes(status);
+  };
+
+  // Check if complaint can be resolved/dismissed (not already resolved/dismissed)
+  const canComplaintBeManaged = (status: string) => {
+    return !['resolved', 'dismissed'].includes(status);
   };
 
   if (isLoading) {
@@ -368,6 +427,34 @@ export default function Complaints() {
                           Escalate
                         </Button>
                       )}
+                      {canManageComplaint && canComplaintBeManaged(complaint.status) && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedComplaint(complaint);
+                              setIsResolveDialogOpen(true);
+                            }}
+                            className="text-green-600 border-green-600 hover:bg-green-50"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Resolve
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedComplaint(complaint);
+                              setIsDismissDialogOpen(true);
+                            }}
+                            className="text-red-600 border-red-600 hover:bg-red-50"
+                          >
+                            <AlertCircle className="h-4 w-4 mr-1" />
+                            Dismiss
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -516,6 +603,100 @@ export default function Complaints() {
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 {escalateComplaintMutation.isPending ? "Escalating..." : "Escalate to MEC"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resolve Complaint Dialog */}
+      <Dialog open={isResolveDialogOpen} onOpenChange={setIsResolveDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Resolve Complaint
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Mark this complaint as resolved by providing resolution details.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Resolution Notes <span className="text-red-500">*</span>
+              </label>
+              <Textarea
+                value={resolutionNotes}
+                onChange={(e) => setResolutionNotes(e.target.value)}
+                placeholder="Describe how this complaint was resolved..."
+                rows={4}
+                className="w-full"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsResolveDialogOpen(false);
+                  setResolutionNotes("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleResolveComplaint}
+                disabled={!resolutionNotes.trim() || updateComplaintStatusMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {updateComplaintStatusMutation.isPending ? "Resolving..." : "Resolve Complaint"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dismiss Complaint Dialog */}
+      <Dialog open={isDismissDialogOpen} onOpenChange={setIsDismissDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              Dismiss Complaint
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Dismiss this complaint by providing a reason for dismissal.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Dismissal Reason <span className="text-red-500">*</span>
+              </label>
+              <Textarea
+                value={resolutionNotes}
+                onChange={(e) => setResolutionNotes(e.target.value)}
+                placeholder="Explain why this complaint is being dismissed..."
+                rows={4}
+                className="w-full"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsDismissDialogOpen(false);
+                  setResolutionNotes("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDismissComplaint}
+                disabled={!resolutionNotes.trim() || updateComplaintStatusMutation.isPending}
+                variant="destructive"
+              >
+                {updateComplaintStatusMutation.isPending ? "Dismissing..." : "Dismiss Complaint"}
               </Button>
             </div>
           </div>
