@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   GitCompare,
   AlertTriangle,
@@ -22,6 +23,8 @@ export default function ResultsComparison() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [constituencyFilter, setConstituencyFilter] = useState("all");
   const [discrepancyFilter, setDiscrepancyFilter] = useState("all");
+  const [selectedComparison, setSelectedComparison] = useState<any>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Fetch internal results
   const { data: internalResults } = useQuery({
@@ -378,7 +381,14 @@ export default function ResultsComparison() {
                           {getStatusBadge(comparison.status)}
                         </td>
                         <td className="p-3 text-center">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedComparison(comparison);
+                              setShowDetailModal(true);
+                            }}
+                          >
                             <Eye className="h-3 w-3 mr-1" />
                             Details
                           </Button>
@@ -392,6 +402,229 @@ export default function ResultsComparison() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Detailed Comparison Modal */}
+      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GitCompare className="h-5 w-5" />
+              Detailed Comparison
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedComparison && (
+            <div className="space-y-6">
+              {/* Location Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Location Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div><span className="font-medium">Constituency:</span> {selectedComparison.constituencyName}</div>
+                    <div><span className="font-medium">Polling Center:</span> {selectedComparison.pollingCenterName}</div>
+                    <div><span className="font-medium">Category:</span> <Badge variant="outline" className="capitalize">{selectedComparison.category}</Badge></div>
+                    <div><span className="font-medium">Status:</span> {getStatusBadge(selectedComparison.status)}</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Vote Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Internal Votes:</span>
+                      <span className={selectedComparison.hasInternal ? 'text-green-700' : 'text-gray-400'}>
+                        {selectedComparison.hasInternal ? selectedComparison.internalTotal.toLocaleString() : 'Not Available'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">MEC Votes:</span>
+                      <span className={selectedComparison.hasMec ? 'text-blue-700' : 'text-gray-400'}>
+                        {selectedComparison.hasMec ? selectedComparison.mecTotal.toLocaleString() : 'Not Available'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="font-medium">Difference:</span>
+                      <span className={`font-bold ${selectedComparison.difference === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {selectedComparison.difference.toLocaleString()}
+                        {selectedComparison.percentageDiff > 0 && (
+                          <span className="text-sm ml-1">({selectedComparison.percentageDiff.toFixed(1)}%)</span>
+                        )}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Detailed Vote Breakdown */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Internal Results Details */}
+                {selectedComparison.internal && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg text-green-700">Internal Results</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span>Total Votes:</span>
+                          <span className="font-medium">{selectedComparison.internal.totalVotes?.toLocaleString() || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Invalid Votes:</span>
+                          <span className="font-medium">{selectedComparison.internal.invalidVotes?.toLocaleString() || '0'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Valid Votes:</span>
+                          <span className="font-medium">
+                            {((selectedComparison.internal.totalVotes || 0) - (selectedComparison.internal.invalidVotes || 0)).toLocaleString()}
+                          </span>
+                        </div>
+                        {selectedComparison.internal.submissionChannel && (
+                          <div className="flex justify-between">
+                            <span>Submission Channel:</span>
+                            <Badge variant="outline">{selectedComparison.internal.submissionChannel}</Badge>
+                          </div>
+                        )}
+                        {selectedComparison.internal.createdAt && (
+                          <div className="flex justify-between">
+                            <span>Submitted:</span>
+                            <span className="text-sm">{new Date(selectedComparison.internal.createdAt).toLocaleString()}</span>
+                          </div>
+                        )}
+                        {selectedComparison.internal.comments && (
+                          <div className="mt-3 p-2 bg-gray-50 rounded">
+                            <span className="font-medium">Comments:</span>
+                            <p className="text-sm mt-1">{selectedComparison.internal.comments}</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* MEC Results Details */}
+                {selectedComparison.mec && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg text-blue-700">MEC Results</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span>Total Votes:</span>
+                          <span className="font-medium">{selectedComparison.mec.totalVotes?.toLocaleString() || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Invalid Votes:</span>
+                          <span className="font-medium">{selectedComparison.mec.invalidVotes?.toLocaleString() || '0'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Valid Votes:</span>
+                          <span className="font-medium">
+                            {((selectedComparison.mec.totalVotes || 0) - (selectedComparison.mec.invalidVotes || 0)).toLocaleString()}
+                          </span>
+                        </div>
+                        {selectedComparison.mec.publishedAt && (
+                          <div className="flex justify-between">
+                            <span>Published:</span>
+                            <span className="text-sm">{new Date(selectedComparison.mec.publishedAt).toLocaleString()}</span>
+                          </div>
+                        )}
+                        {selectedComparison.mec.source && (
+                          <div className="flex justify-between">
+                            <span>Source:</span>
+                            <Badge variant="outline">{selectedComparison.mec.source}</Badge>
+                          </div>
+                        )}
+                        {selectedComparison.mec.notes && (
+                          <div className="mt-3 p-2 bg-gray-50 rounded">
+                            <span className="font-medium">Notes:</span>
+                            <p className="text-sm mt-1">{selectedComparison.mec.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* Analysis Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {selectedComparison.status === 'match' && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="font-medium text-green-800">Perfect Match</span>
+                        </div>
+                        <p className="text-sm text-green-700 mt-1">
+                          The internal and MEC results are within acceptable variance (≤2%).
+                        </p>
+                      </div>
+                    )}
+                    
+                    {selectedComparison.status === 'minor_discrepancy' && (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                          <span className="font-medium text-yellow-800">Minor Discrepancy</span>
+                        </div>
+                        <p className="text-sm text-yellow-700 mt-1">
+                          There's a {selectedComparison.percentageDiff.toFixed(1)}% difference between results. This may require review.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {selectedComparison.status === 'major_discrepancy' && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-600" />
+                          <span className="font-medium text-red-800">Major Discrepancy</span>
+                        </div>
+                        <p className="text-sm text-red-700 mt-1">
+                          There's a significant {selectedComparison.percentageDiff.toFixed(1)}% difference between results. This requires immediate investigation.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {selectedComparison.status === 'missing_internal' && (
+                      <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-orange-600" />
+                          <span className="font-medium text-orange-800">Missing Internal Result</span>
+                        </div>
+                        <p className="text-sm text-orange-700 mt-1">
+                          No internal result found for this location, but MEC has published results.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {selectedComparison.status === 'missing_mec' && (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-blue-600" />
+                          <span className="font-medium text-blue-800">Missing MEC Result</span>
+                        </div>
+                        <p className="text-sm text-blue-700 mt-1">
+                          Internal result exists but no corresponding MEC result has been published yet.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
