@@ -780,10 +780,8 @@ export default function UserManagement() {
                       <SelectContent>
                         <SelectItem value="agent">Agent</SelectItem>
                         <SelectItem value="supervisor">Supervisor</SelectItem>
-                        <SelectItem value="reviewer">Reviewer</SelectItem>
+                        <SelectItem value="observer">Observer</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="president">President</SelectItem>
-                        <SelectItem value="mp">MP</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

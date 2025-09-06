@@ -520,7 +520,7 @@ export type ResultWithRelations = Result & {
   files: ResultFile[];
 };
 
-export type UserRole = 'agent' | 'supervisor' | 'admin' | 'reviewer' | 'president' | 'mp';
+export type UserRole = 'agent' | 'supervisor' | 'admin' | 'observer';
 export type ResultStatus = 'pending' | 'verified' | 'flagged' | 'rejected';
 export type SubmissionChannel = 'whatsapp' | 'portal' | 'ussd' | 'both';
 export type CandidateCategory = 'president' | 'mp' | 'councilor';
