@@ -188,10 +188,10 @@ export default function MECResults() {
   };
 
   // Filter results
-  const filteredResults = mecResults?.mecResults?.filter((result: any) => {
+  const filteredResults = (mecResults as any)?.mecResults?.filter((result: any) => {
     const matchesSearch = result.mecReferenceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         result.constituencyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         result.pollingCenterName?.toLowerCase().includes(searchTerm.toLowerCase());
+                         result.constituency?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         result.pollingCenter?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === "all" || result.category === categoryFilter;
     return matchesSearch && matchesCategory;
   }) || [];
@@ -648,8 +648,8 @@ export default function MECResults() {
                         </Badge>
                       </div>
                       <div className="text-sm text-gray-600 mb-2">
-                        <p><strong>Constituency:</strong> {result.constituencyName}</p>
-                        <p><strong>Polling Center:</strong> {result.pollingCenterName}</p>
+                        <p><strong>Constituency:</strong> {result.constituency}</p>
+                        <p><strong>Polling Center:</strong> {result.pollingCenter}</p>
                         <p><strong>Total Votes:</strong> {result.totalVotes}</p>
                       </div>
                       <div className="flex items-center gap-4 text-xs text-gray-500">
@@ -701,11 +701,11 @@ export default function MECResults() {
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">Constituency:</span>
-                  <p className="text-gray-900">{selectedResult.constituencyName}</p>
+                  <p className="text-gray-900">{selectedResult.constituency}</p>
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">Polling Center:</span>
-                  <p className="text-gray-900">{selectedResult.pollingCenterName}</p>
+                  <p className="text-gray-900">{selectedResult.pollingCenter}</p>
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">MEC Official:</span>

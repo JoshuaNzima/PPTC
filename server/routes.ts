@@ -1165,8 +1165,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user;
       
-      // Only allow MEC officials (admin/reviewer) to create official MEC results
-      if (user?.role !== 'admin' && user?.role !== 'reviewer') {
+      // Only allow MEC officials (admin/supervisor) to create official MEC results
+      if (user?.role !== 'admin' && user?.role !== 'supervisor') {
         return res.status(403).json({ message: "Access denied. MEC official role required." });
       }
 
@@ -1261,8 +1261,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/results/:id/review", isAuthenticated, async (req: any, res) => {
     try {
       const user = req.user;
-      if (user?.role !== 'reviewer' && user?.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied. Reviewer or admin role required." });
+      if (user?.role !== 'supervisor' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied. Supervisor or admin role required." });
       }
 
       const { action, comments } = req.body;
