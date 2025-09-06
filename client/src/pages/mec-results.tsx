@@ -115,16 +115,38 @@ export default function MECResults() {
       setIsCreateDialogOpen(false);
       form.reset();
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Failed to record MEC result";
       toast({
         title: "Error",
-        description: "Failed to record MEC result",
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
 
   const onSubmit = (data: MECResultFormData) => {
+    // Validate that we have at least one candidate vote
+    if (!data.candidateVotes || data.candidateVotes.length === 0 || !data.candidateVotes[0].candidateId) {
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one candidate vote",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate that all candidate votes have valid data
+    const invalidVotes = data.candidateVotes.some(vote => !vote.candidateId || vote.votes < 0);
+    if (invalidVotes) {
+      toast({
+        title: "Validation Error", 
+        description: "Please ensure all candidate votes are valid",
+        variant: "destructive",
+      });
+      return;
+    }
+
     createMECResultMutation.mutate(data);
   };
 
@@ -511,8 +533,19 @@ export default function MECResults() {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={createMECResultMutation.isPending}>
-                      {createMECResultMutation.isPending ? "Recording..." : "Record Result"}
+                    <Button 
+                      type="submit" 
+                      disabled={createMECResultMutation.isPending}
+                      className="min-w-[120px]"
+                    >
+                      {createMECResultMutation.isPending ? (
+                        <>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-white"></div>
+                          Recording...
+                        </>
+                      ) : (
+                        "Record Result"
+                      )}
                     </Button>
                   </div>
                 </form>
