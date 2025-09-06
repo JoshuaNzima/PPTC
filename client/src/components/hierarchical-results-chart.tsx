@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,18 +85,17 @@ export default function HierarchicalResultsChart() {
       if (selectedItem) params.append('parentId', selectedItem);
       return fetch(`/api/hierarchical-results?${params}`, { credentials: "include" }).then(res => res.json());
     },
-    refetchInterval: 30000, // Refresh every 30 seconds instead of 5
-    staleTime: 10000, // Consider data fresh for 10 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
-  const chartData = useMemo(() => hierarchicalData || [], [hierarchicalData]);
+  const chartData = hierarchicalData || [];
 
-  const handleViewChange = useCallback((newLevel: ViewLevel) => {
+  const handleViewChange = (newLevel: ViewLevel) => {
     setViewLevel(newLevel);
     setSelectedItem(''); // Reset selection when changing levels
-  }, []);
+  };
 
-  const handleItemSelection = useCallback((itemId: string) => {
+  const handleItemSelection = (itemId: string) => {
     if (viewLevel === 'constituency') {
       setViewLevel('ward');
       setSelectedItem(itemId);
@@ -104,16 +103,16 @@ export default function HierarchicalResultsChart() {
       setViewLevel('center');
       setSelectedItem(itemId);
     }
-  }, [viewLevel]);
+  };
 
-  const goBack = useCallback(() => {
+  const goBack = () => {
     if (viewLevel === 'center') {
       setViewLevel('ward');
     } else if (viewLevel === 'ward') {
       setViewLevel('constituency');
       setSelectedItem('');
     }
-  }, [viewLevel]);
+  };
 
   const renderChart = () => {
     if (!chartData || chartData.length === 0) {
@@ -377,42 +376,34 @@ export default function HierarchicalResultsChart() {
         </div>
 
         {/* Summary Stats */}
-        {useMemo(() => {
-          const totalVotes = chartData.reduce((sum: number, item: ResultData) => sum + (item.totalVotes || 0), 0);
-          const avgCompletion = chartData.length > 0 
-            ? (chartData.reduce((sum: number, item: ResultData) => sum + (item.completionRate || 0), 0) / chartData.length).toFixed(1)
-            : 0;
-          const avgVerification = chartData.length > 0 
-            ? (chartData.reduce((sum: number, item: ResultData) => sum + (item.verificationRate || 0), 0) / chartData.length).toFixed(1)
-            : 0;
-
-          return (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="font-semibold text-blue-900 text-sm">Total Items</div>
-                <div className="text-xl font-bold text-blue-700">{chartData.length}</div>
-              </div>
-              <div className="bg-green-50 p-3 rounded-lg">
-                <div className="font-semibold text-green-900 text-sm">Total Votes</div>
-                <div className="text-xl font-bold text-green-700">
-                  {totalVotes.toLocaleString()}
-                </div>
-              </div>
-              <div className="bg-yellow-50 p-3 rounded-lg">
-                <div className="font-semibold text-yellow-900 text-sm">Avg Completion</div>
-                <div className="text-xl font-bold text-yellow-700">
-                  {avgCompletion}%
-                </div>
-              </div>
-              <div className="bg-purple-50 p-3 rounded-lg">
-                <div className="font-semibold text-purple-900 text-sm">Avg Verification</div>
-                <div className="text-xl font-bold text-purple-700">
-                  {avgVerification}%
-                </div>
-              </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <div className="font-semibold text-blue-900 text-sm">Total Items</div>
+            <div className="text-xl font-bold text-blue-700">{chartData.length}</div>
+          </div>
+          <div className="bg-green-50 p-3 rounded-lg">
+            <div className="font-semibold text-green-900 text-sm">Total Votes</div>
+            <div className="text-xl font-bold text-green-700">
+              {chartData.reduce((sum: number, item: ResultData) => sum + (item.totalVotes || 0), 0).toLocaleString()}
             </div>
-          );
-        }, [chartData])}
+          </div>
+          <div className="bg-yellow-50 p-3 rounded-lg">
+            <div className="font-semibold text-yellow-900 text-sm">Avg Completion</div>
+            <div className="text-xl font-bold text-yellow-700">
+              {chartData.length > 0 
+                ? (chartData.reduce((sum: number, item: ResultData) => sum + (item.completionRate || 0), 0) / chartData.length).toFixed(1)
+                : 0}%
+            </div>
+          </div>
+          <div className="bg-purple-50 p-3 rounded-lg">
+            <div className="font-semibold text-purple-900 text-sm">Avg Verification</div>
+            <div className="text-xl font-bold text-purple-700">
+              {chartData.length > 0 
+                ? (chartData.reduce((sum: number, item: ResultData) => sum + (item.verificationRate || 0), 0) / chartData.length).toFixed(1)
+                : 0}%
+            </div>
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent>
