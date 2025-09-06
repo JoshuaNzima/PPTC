@@ -49,15 +49,19 @@ export default function ResultsComparison() {
     const internalByKey: { [key: string]: any } = {};
     const mecByKey: { [key: string]: any } = {};
     
-    internalData.forEach((result: any) => {
-      const key = `${result.pollingCenter?.constituency || result.constituency}_${result.category}_${result.pollingCenterId || 'general'}`;
-      internalByKey[key] = result;
-    });
+    if (Array.isArray(internalData)) {
+      internalData.forEach((result: any) => {
+        const key = `${result.pollingCenter?.constituency || result.constituency}_${result.category}_${result.pollingCenterId || 'general'}`;
+        internalByKey[key] = result;
+      });
+    }
     
-    mecData.forEach((result: any) => {
-      const key = `${result.constituency}_${result.category}_${result.pollingCenter || 'general'}`;
-      mecByKey[key] = result;
-    });
+    if (Array.isArray(mecData)) {
+      mecData.forEach((result: any) => {
+        const key = `${result.constituency}_${result.category}_${result.pollingCenter || 'general'}`;
+        mecByKey[key] = result;
+      });
+    }
     
     // Create comparisons for all unique keys
     const allKeys = new Set([...Object.keys(internalByKey), ...Object.keys(mecByKey)]);
@@ -258,7 +262,7 @@ export default function ResultsComparison() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Constituencies</SelectItem>
-                {constituencies && constituencies.map((constituency: any) => (
+                {Array.isArray(constituencies) && constituencies.map((constituency: any) => (
                   <SelectItem key={constituency.id} value={constituency.id}>
                     {constituency.name}
                   </SelectItem>

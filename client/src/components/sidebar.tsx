@@ -23,7 +23,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/language-context";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 const getNavigation = (t: (key: string) => string) => [
   { name: t("nav.dashboard"), href: "/", icon: BarChart3, roles: ["agent", "supervisor", "admin", "observer"] },
@@ -48,21 +50,70 @@ function SidebarContent({ onItemClick, collapsed = false }: { onItemClick?: () =
   const { user } = useAuth();
   const { t } = useLanguage();
 
+  // Fetch data for badges
+  const { data: analytics } = useQuery({
+    queryKey: ["/api/analytics"],
+  });
+
+  const { data: complaints } = useQuery({
+    queryKey: ["/api/complaints/summary"],
+  });
+
+  const { data: flaggedResults } = useQuery({
+    queryKey: ["/api/results", "flagged"],
+    queryFn: async () => {
+      const response = await fetch("/api/results?status=flagged");
+      return response.json();
+    },
+  });
+
   const navigation = getNavigation(t);
   const filteredNavigation = navigation.filter(item => 
     item.roles.includes((user as any)?.role || "agent")
   );
+
+  // Function to get badge count for navigation items
+  const getBadgeCount = (href: string) => {
+    switch (href) {
+      case "/verify-results":
+        return (analytics as any)?.overview?.pendingResultsCount || 0;
+      case "/complaints":
+        return (complaints as any)?.pending || 0;
+      case "/review-flagged":
+        return Array.isArray(flaggedResults) ? flaggedResults.length : 0;
+      default:
+        return null;
+    }
+  };
+
+  const getBadgeVariant = (href: string, count: number) => {
+    if (count === 0) return null;
+    switch (href) {
+      case "/review-flagged":
+        return "destructive";
+      case "/complaints":
+        return count > 5 ? "destructive" : "secondary";
+      case "/verify-results":
+        return count > 10 ? "destructive" : "default";
+      default:
+        return "secondary";
+    }
+  };
 
   return (
     <div className={cn("p-4 sm:p-6", collapsed && "px-2")}>
       <div className="space-y-1">
         {filteredNavigation.map((item) => {
           const isActive = location === item.href;
+          const badgeCount = getBadgeCount(item.href);
+          const badgeVariant = badgeCount ? getBadgeVariant(item.href, badgeCount) : null;
+          const showBadge = badgeCount && badgeCount > 0;
+
           return (
             <Link key={item.name} href={item.href}>
               <div
                 className={cn(
-                  "group flex items-center px-3 py-3 text-sm sm:text-base font-medium rounded-md transition-colors cursor-pointer min-h-[44px]",
+                  "group flex items-center px-3 py-3 text-sm sm:text-base font-medium rounded-md transition-colors cursor-pointer min-h-[44px] relative",
                   isActive
                     ? "bg-primary-50 text-primary-700"
                     : "text-gray-700 hover:bg-gray-50",
@@ -72,14 +123,37 @@ function SidebarContent({ onItemClick, collapsed = false }: { onItemClick?: () =
                 onClick={onItemClick}
                 title={collapsed ? item.name : undefined}
               >
-                <item.icon
-                  className={cn(
-                    "h-5 w-5 sm:h-6 sm:w-6",
-                    collapsed ? "" : "mr-3",
-                    isActive ? "text-primary-500" : "text-gray-400"
+                <div className="relative">
+                  <item.icon
+                    className={cn(
+                      "h-5 w-5 sm:h-6 sm:w-6",
+                      collapsed ? "" : "mr-3",
+                      isActive ? "text-primary-500" : "text-gray-400"
+                    )}
+                  />
+                  {/* Badge positioned absolutely for collapsed mode */}
+                  {collapsed && showBadge && (
+                    <Badge
+                      variant={badgeVariant as any}
+                      className="absolute -top-1 -right-1 h-4 min-w-4 text-xs px-1 flex items-center justify-center"
+                    >
+                      {badgeCount > 99 ? "99+" : badgeCount}
+                    </Badge>
                   )}
-                />
-                {!collapsed && item.name}
+                </div>
+                {!collapsed && (
+                  <div className="flex items-center justify-between flex-1">
+                    <span>{item.name}</span>
+                    {showBadge && (
+                      <Badge 
+                        variant={badgeVariant as any}
+                        className="h-5 min-w-5 text-xs px-2 ml-2"
+                      >
+                        {badgeCount > 99 ? "99+" : badgeCount}
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </div>
             </Link>
           );
