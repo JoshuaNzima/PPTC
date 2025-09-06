@@ -1266,7 +1266,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         candidateVotes, 
         totalVotes, 
         invalidVotes,
-        mecReferenceNumber,
         mecOfficialName,
         dateReceived,
         notes 
@@ -1309,7 +1308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'verified', // MEC results are official and verified
         source: 'mec', // Mark as external MEC result
         submissionChannel: 'portal',
-        comments: notes || `Official MEC Result - ${mecReferenceNumber}`,
+        comments: notes || `Official MEC Result - Auto-generated ID: ${Date.now()}`,
       };
 
       const result = await storage.createResult(resultData);
@@ -1335,7 +1334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "MEC result recorded successfully",
         result: {
           ...result,
-          mecReferenceNumber,
+          referenceNumber: result.id,
           mecOfficialName,
           dateReceived
         }

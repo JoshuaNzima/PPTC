@@ -42,7 +42,6 @@ const mecResultSchema = z.object({
   })),
   totalVotes: z.number().min(0),
   invalidVotes: z.number().min(0),
-  mecReferenceNumber: z.string().min(1, "MEC reference number is required"),
   mecOfficialName: z.string().min(1, "MEC official name is required"),
   dateReceived: z.string().min(1, "Date received is required"),
   notes: z.string().optional(),
@@ -68,7 +67,6 @@ export default function MECResults() {
       candidateVotes: [{ candidateId: "", candidateName: "", partyName: "", votes: 0 }],
       totalVotes: 0,
       invalidVotes: 0,
-      mecReferenceNumber: "",
       mecOfficialName: "",
       dateReceived: "",
       notes: ""
@@ -338,20 +336,6 @@ export default function MECResults() {
                               <SelectItem value="councilor">Councilor</SelectItem>
                             </SelectContent>
                           </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="mecReferenceNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>MEC Reference Number</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g., MEC-2024-001" />
-                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
