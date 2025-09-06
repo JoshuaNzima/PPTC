@@ -54,7 +54,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   updateUserRole(userId: string, role: UserRole): Promise<User>;
   updateLastLogin(userId: string): Promise<void>;
-  
+
   // Hierarchical location operations
   getAllConstituenciesWithHierarchy(): Promise<(Constituency & { wards: (Ward & { centres: Centre[] })[] })[]>;
   getConstituencies(): Promise<Constituency[]>;
@@ -62,7 +62,7 @@ export interface IStorage {
   upsertConstituency(constituency: InsertConstituency): Promise<Constituency>;
   upsertWard(ward: InsertWard): Promise<Ward>;
   upsertCentre(centre: InsertCentre): Promise<Centre>;
-  
+
   // Polling center operations
   getPollingCenters(page?: number, limit?: number): Promise<{ data: PollingCenter[]; total: number; }>;
   getPollingCenter(id: string): Promise<PollingCenter | undefined>;
@@ -70,56 +70,57 @@ export interface IStorage {
   updatePollingCenter(id: string, data: Partial<PollingCenter>): Promise<PollingCenter>;
   reactivatePollingCenter(id: string): Promise<PollingCenter>;
   deactivatePollingCenter(id: string): Promise<PollingCenter>;
-  
+
   // Political party operations
   getPoliticalParties(): Promise<PoliticalParty[]>;
   createPoliticalParty(party: InsertPoliticalParty): Promise<PoliticalParty>;
   updatePoliticalParty(id: string, party: Partial<InsertPoliticalParty>): Promise<PoliticalParty>;
   deactivatePoliticalParty(id: string): Promise<PoliticalParty>;
-  
+
   // Candidate operations
   getCandidates(page?: number, limit?: number): Promise<{ data: Candidate[]; total: number; }>;
   createCandidate(candidate: InsertCandidate): Promise<Candidate>;
-  
+
   // Session management
   updateUserSession(userId: string, sessionId: string, expiryTime: Date): Promise<User>;
   clearUserSession(userId: string): Promise<User>;
   getUserBySession(sessionId: string): Promise<User | undefined>;
-  
+
   // USSD operations
   createUssdSession(phoneNumber: string, sessionId: string, currentStep: string): Promise<UssdSession>;
   getUssdSession(sessionId: string): Promise<UssdSession | undefined>;
   updateUssdSession(sessionId: string, currentStep: string, sessionData: any): Promise<UssdSession>;
   expireUssdSession(sessionId: string): Promise<void>;
-  
+
   // USSD Provider management
   getUssdProviders(): Promise<UssdProvider[]>;
   createUssdProvider(provider: { name: string; type: string; configuration: any }): Promise<UssdProvider>;
   updateUssdProvider(id: string, updates: { isActive?: boolean; configuration?: any }): Promise<UssdProvider>;
-  
+
   // WhatsApp Provider management
   getWhatsappProviders(): Promise<WhatsappProvider[]>;
   createWhatsappProvider(provider: { name: string; type: string; configuration: any; isPrimary?: boolean }): Promise<WhatsappProvider>;
   updateWhatsappProvider(id: string, updates: { isActive?: boolean; configuration?: any; isPrimary?: boolean }): Promise<WhatsappProvider>;
   setPrimaryWhatsappProvider(id: string): Promise<WhatsappProvider>;
-  
+
   // Result operations
   getResults(): Promise<ResultWithRelations[]>;
   getAllResultsWithDetails(): Promise<ResultWithRelations[]>;
   getResult(id: string): Promise<Result | undefined>;
   getResultsByStatus(status: ResultStatus): Promise<ResultWithRelations[]>;
   getResultsByPollingCenter(pollingCenterId: string): Promise<ResultWithRelations[]>;
+  getResultsBySource(source: 'internal' | 'mec'): Promise<ResultWithRelations[]>;
   createResult(result: InsertResult): Promise<Result>;
   updateResultStatus(resultId: string, status: ResultStatus, verifiedBy?: string, flaggedReason?: string): Promise<Result>;
   flagForDocumentMismatch(resultId: string, reason: string): Promise<Result>;
   updateResult(resultId: string, updates: Partial<InsertResult>): Promise<Result>;
   updateUser(userId: string, updates: Partial<UpsertUser>): Promise<User>;
   getUserById(userId: string): Promise<User | undefined>;
-  
+
   // Result file operations
   createResultFile(file: InsertResultFile): Promise<ResultFile>;
   getResultFiles(resultId: string): Promise<ResultFile[]>;
-  
+
   // Statistics
   getStats(): Promise<{
     totalCenters: number;
@@ -143,7 +144,7 @@ export interface IStorage {
     submissions: number;
     verifications: number;
   }>>;
-  
+
   // Party performance data for dashboard charts
   getPartyPerformance(category?: CandidateCategory): Promise<Array<{
     party: string;
@@ -152,7 +153,7 @@ export interface IStorage {
     candidates: number;
     category: CandidateCategory;
   }>>;
-  
+
   // Audit operations
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   getAuditLogs(limit?: number): Promise<AuditLog[]>;
@@ -260,7 +261,7 @@ export class DatabaseStorage implements IStorage {
 
     // Apply pagination if specified
     let query = db.select().from(pollingCenters).where(eq(pollingCenters.isActive, true)).orderBy(desc(pollingCenters.createdAt));
-    
+
     if (page !== undefined && limit !== undefined) {
       const offset = (page - 1) * limit;
       query = query.limit(limit).offset(offset) as any;
@@ -365,7 +366,7 @@ export class DatabaseStorage implements IStorage {
   async deletePoliticalParty(id: string): Promise<void> {
     // First check if the party is used by any candidates
     const candidatesUsingParty = await db.select().from(candidates).where(eq(candidates.partyId, id));
-    
+
     if (candidatesUsingParty.length > 0) {
       throw new Error("Cannot delete political party as it is being used by existing candidates");
     }
@@ -382,7 +383,7 @@ export class DatabaseStorage implements IStorage {
 
     // Apply pagination if specified
     let query = db.select().from(candidates).orderBy(desc(candidates.createdAt));
-    
+
     if (page !== undefined && limit !== undefined) {
       const offset = (page - 1) * limit;
       query = query.limit(limit).offset(offset) as any;
@@ -520,10 +521,10 @@ export class DatabaseStorage implements IStorage {
     // Calculate votes for each category
     const presidentialTotal = result.presidentialVotes ? 
       Object.values(result.presidentialVotes as Record<string, number>).reduce((sum, votes) => sum + votes, 0) : 0;
-    
+
     const mpTotal = result.mpVotes ? 
       Object.values(result.mpVotes as Record<string, number>).reduce((sum, votes) => sum + votes, 0) : 0;
-    
+
     const councilorTotal = result.councilorVotes ? 
       Object.values(result.councilorVotes as Record<string, number>).reduce((sum, votes) => sum + votes, 0) : 0;
 
@@ -535,7 +536,7 @@ export class DatabaseStorage implements IStorage {
     // Total votes across all categories should not exceed registered voters * 3
     const maxTotalVotes = pollingCenter.registeredVoters * 3;
     const maxVotesPerCategory = pollingCenter.registeredVoters;
-    
+
     let status = result.status || 'pending';
     let flaggedReason = result.flaggedReason;
 
@@ -544,7 +545,7 @@ export class DatabaseStorage implements IStorage {
       status = 'flagged';
       flaggedReason = `Votes in one or more categories exceed registered voters (${maxVotesPerCategory}). Presidential: ${presidentialTotal}, MP: ${mpTotal}, Councilor: ${councilorTotal}`;
     }
-    
+
     // Flag if total votes across all categories exceed theoretical maximum
     else if (totalVotes > maxTotalVotes) {
       status = 'flagged';
@@ -575,12 +576,12 @@ export class DatabaseStorage implements IStorage {
       status, 
       updatedAt: new Date() 
     };
-    
+
     if (verifiedBy) {
       updateData.verifiedBy = verifiedBy;
       updateData.verifiedAt = new Date();
     }
-    
+
     if (flaggedReason) {
       updateData.flaggedReason = flaggedReason;
     }
@@ -835,7 +836,7 @@ export class DatabaseStorage implements IStorage {
 
       // Get all candidates to match parties with categories
       const allCandidates = await db.select().from(candidates);
-      
+
       if (category) {
         // Category-specific data (existing logic)
         const partyPerformance = new Map<string, {
@@ -848,7 +849,7 @@ export class DatabaseStorage implements IStorage {
         // Process each verified result
         for (const result of verifiedResults) {
           const resultData = result;
-          
+
           // Process each category's votes
           const categories: { votes: any; category: CandidateCategory }[] = [
             { votes: resultData.presidentialVotes, category: 'president' },
@@ -858,13 +859,13 @@ export class DatabaseStorage implements IStorage {
 
           for (const { votes, category: resultCategory } of categories) {
             if (category !== resultCategory) continue;
-            
+
             if (votes && typeof votes === 'object') {
               for (const [candidateId, voteCount] of Object.entries(votes)) {
                 const candidate = allCandidates.find(c => c.id === candidateId);
                 if (candidate && candidate.category === resultCategory) {
                   const key = `${candidate.party}-${resultCategory}`;
-                  
+
                   if (!partyPerformance.has(key)) {
                     partyPerformance.set(key, {
                       party: candidate.party,
@@ -873,7 +874,7 @@ export class DatabaseStorage implements IStorage {
                       category: resultCategory
                     });
                   }
-                  
+
                   const partyData = partyPerformance.get(key)!;
                   partyData.totalVotes += Number(voteCount) || 0;
                 }
@@ -885,7 +886,7 @@ export class DatabaseStorage implements IStorage {
         // Count candidates per party-category combination
         for (const candidate of allCandidates) {
           if (candidate.category !== category) continue;
-          
+
           const key = `${candidate.party}-${candidate.category}`;
           if (partyPerformance.has(key)) {
             partyPerformance.get(key)!.candidates++;
@@ -912,7 +913,7 @@ export class DatabaseStorage implements IStorage {
         // Process each verified result
         for (const result of verifiedResults) {
           const resultData = result;
-          
+
           // Process each category's votes
           const categories: { votes: any; category: CandidateCategory }[] = [
             { votes: resultData.presidentialVotes, category: 'president' },
@@ -933,7 +934,7 @@ export class DatabaseStorage implements IStorage {
                       categoryBreakdown: { president: 0, mp: 0, councilor: 0 }
                     });
                   }
-                  
+
                   const partyData = partyTotals.get(candidate.party)!;
                   const votes = Number(voteCount) || 0;
                   partyData.totalVotes += votes;
@@ -962,7 +963,7 @@ export class DatabaseStorage implements IStorage {
           percentage: totalVotes > 0 ? (party.totalVotes / totalVotes) * 100 : 0
         })).sort((a, b) => b.totalVotes - a.totalVotes);
       }
-      
+
     } catch (error) {
       console.error('Error calculating party performance:', error);
       return [];
@@ -991,16 +992,16 @@ export class DatabaseStorage implements IStorage {
   async deleteUser(userId: string): Promise<void> {
     // Delete user's audit logs first to avoid foreign key constraint issues
     await db.delete(auditLogs).where(eq(auditLogs.userId, userId));
-    
+
     // Delete user's result files
     const userResults = await db.select({ id: results.id }).from(results).where(eq(results.submittedBy, userId));
     for (const result of userResults) {
       await db.delete(resultFiles).where(eq(resultFiles.resultId, result.id));
     }
-    
+
     // Delete user's results
     await db.delete(results).where(eq(results.submittedBy, userId));
-    
+
     // Finally delete the user
     await db.delete(users).where(eq(users.id, userId));
   }
@@ -1010,13 +1011,13 @@ export class DatabaseStorage implements IStorage {
     // In a full implementation, you might move them to a separate archive table
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    
+
     const archivedResults = await db
       .update(results)
       .set({ status: 'archived' as any })
       .where(sql`${results.createdAt} < ${oneYearAgo}`)
       .returning();
-    
+
     return archivedResults.length;
   }
 
@@ -1061,14 +1062,14 @@ export class DatabaseStorage implements IStorage {
     if (options.users) {
       // Delete audit logs first
       await db.delete(auditLogs);
-      
+
       let deletedUsers;
       if (options.keepAdmin) {
         deletedUsers = await db.delete(users).where(sql`${users.role} != 'admin'`).returning();
       } else {
         deletedUsers = await db.delete(users).returning();
       }
-      
+
       usersDeleted = deletedUsers.length;
     }
 
@@ -1188,7 +1189,7 @@ export class DatabaseStorage implements IStorage {
     const updateData: any = { updatedAt: new Date() };
     if (typeof updates.isActive === 'boolean') updateData.isActive = updates.isActive;
     if (updates.configuration) updateData.configuration = updates.configuration;
-    
+
     const [provider] = await db
       .update(ussdProviders)
       .set(updateData)
@@ -1210,7 +1211,7 @@ export class DatabaseStorage implements IStorage {
         .set({ isPrimary: false, updatedAt: new Date() })
         .where(eq(whatsappProviders.isPrimary, true));
     }
-    
+
     const [newProvider] = await db
       .insert(whatsappProviders)
       .values(provider)
@@ -1232,7 +1233,7 @@ export class DatabaseStorage implements IStorage {
       updateData.isPrimary = updates.isPrimary;
     }
     if (updates.configuration) updateData.configuration = updates.configuration;
-    
+
     const [provider] = await db
       .update(whatsappProviders)
       .set(updateData)
@@ -1247,7 +1248,7 @@ export class DatabaseStorage implements IStorage {
       .update(whatsappProviders)
       .set({ isPrimary: false, updatedAt: new Date() })
       .where(eq(whatsappProviders.isPrimary, true));
-    
+
     // Then set the specified provider as primary
     const [provider] = await db
       .update(whatsappProviders)
@@ -1302,7 +1303,7 @@ export class DatabaseStorage implements IStorage {
 
   async upsertConstituency(constituency: InsertConstituency): Promise<Constituency> {
     const [existing] = await db.select().from(constituencies).where(eq(constituencies.id, constituency.id));
-    
+
     if (existing) {
       const [updated] = await db
         .update(constituencies)
@@ -1318,7 +1319,7 @@ export class DatabaseStorage implements IStorage {
 
   async upsertWard(ward: InsertWard): Promise<Ward> {
     const [existing] = await db.select().from(wards).where(eq(wards.id, ward.id));
-    
+
     if (existing) {
       const [updated] = await db
         .update(wards)
@@ -1334,7 +1335,7 @@ export class DatabaseStorage implements IStorage {
 
   async upsertCentre(centre: InsertCentre): Promise<Centre> {
     const [existing] = await db.select().from(centres).where(eq(centres.id, centre.id));
-    
+
     if (existing) {
       const [updated] = await db
         .update(centres)
@@ -1390,22 +1391,22 @@ export class DatabaseStorage implements IStorage {
       status: status as any,
       updatedAt: new Date(),
     };
-    
+
     if (resolutionNotes) {
       updateData.resolutionNotes = resolutionNotes;
       updateData.resolvedAt = new Date();
     }
-    
+
     if (reviewedBy) {
       updateData.reviewedBy = reviewedBy;
     }
-    
+
     const [updatedComplaint] = await db
       .update(complaints)
       .set(updateData)
       .where(eq(complaints.id, complaintId))
       .returning();
-    
+
     return updatedComplaint;
   }
 
@@ -1429,7 +1430,7 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(complaints.id, complaintId))
       .returning();
-    
+
     return updatedComplaint;
   }
 }

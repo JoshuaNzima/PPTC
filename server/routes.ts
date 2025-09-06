@@ -1118,43 +1118,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // MEC Results endpoints
   app.get("/api/mec-results", isAuthenticated, async (req, res) => {
     try {
-      // Get all MEC results (external results from MEC)
-      const results = await storage.getResultsBySource('mec');
+      // Get all results marked as MEC source or verified results that can be considered official
+      const allResults = await storage.getResults();
+      const mecResults = allResults.filter(result => 
+        result.source === 'mec' || result.status === 'verified'
+      );
+      
+      // Get candidates for name mapping
+      const candidatesResult = await storage.getCandidates();
+      const candidates = candidatesResult.data || candidatesResult;
       
       // Transform results for MEC results display
-      const mecResults = results.map(result => ({
-        id: result.id,
-        constituency: result.pollingCenter?.constituency || '',
-        pollingCenter: result.pollingCenter?.name || '',
-        category: result.category,
-        totalVotes: result.totalVotes,
-        invalidVotes: result.invalidVotes,
-        candidateVotes: [
-          ...(result.presidentialVotes ? Object.entries(result.presidentialVotes).map(([candidateId, votes]) => ({
-            candidateId,
-            votes: Number(votes),
-            category: 'president'
-          })) : []),
-          ...(result.mpVotes ? Object.entries(result.mpVotes).map(([candidateId, votes]) => ({
-            candidateId,
-            votes: Number(votes),
-            category: 'mp'
-          })) : []),
-          ...(result.councilorVotes ? Object.entries(result.councilorVotes).map(([candidateId, votes]) => ({
-            candidateId,
-            votes: Number(votes),
-            category: 'councilor'
-          })) : [])
-        ],
-        mecReferenceNumber: `MEC-${result.id.slice(-8)}`,
-        mecOfficialName: result.verifiedBy || 'MEC Official',
-        dateReceived: result.verifiedAt || result.createdAt,
-        submittedBy: result.submitter?.firstName + ' ' + result.submitter?.lastName,
-        createdAt: result.createdAt,
-        updatedAt: result.updatedAt
-      }));
+      const transformedResults = mecResults.map(result => {
+        const candidateVotes = [];
+        
+        // Process presidential votes
+        if (result.presidentialVotes && typeof result.presidentialVotes === 'object') {
+          Object.entries(result.presidentialVotes).forEach(([candidateId, votes]) => {
+            const candidate = candidates.find(c => c.id === candidateId);
+            if (candidate) {
+              candidateVotes.push({
+                candidateId,
+                candidateName: candidate.name,
+                partyName: candidate.party,
+                votes: Number(votes)
+              });
+            }
+          });
+        }
+        
+        // Process MP votes
+        if (result.mpVotes && typeof result.mpVotes === 'object') {
+          Object.entries(result.mpVotes).forEach(([candidateId, votes]) => {
+            const candidate = candidates.find(c => c.id === candidateId);
+            if (candidate) {
+              candidateVotes.push({
+                candidateId,
+                candidateName: candidate.name,
+                partyName: candidate.party,
+                votes: Number(votes)
+              });
+            }
+          });
+        }
+        
+        // Process councilor votes
+        if (result.councilorVotes && typeof result.councilorVotes === 'object') {
+          Object.entries(result.councilorVotes).forEach(([candidateId, votes]) => {
+            const candidate = candidates.find(c => c.id === candidateId);
+            if (candidate) {
+              candidateVotes.push({
+                candidateId,
+                candidateName: candidate.name,
+                partyName: candidate.party,
+                votes: Number(votes)
+              });
+            }
+          });
+        }
+        
+        return {
+          id: result.id,
+          constituency: result.pollingCenter?.constituency || '',
+          pollingCenter: result.pollingCenter?.name || '',
+          category: result.category || 'mixed',
+          totalVotes: result.totalVotes || 0,
+          invalidVotes: result.invalidVotes || 0,
+          candidateVotes,
+          mecReferenceNumber: result.mecReferenceNumber || `MEC-${result.id.slice(-8)}`,
+          mecOfficialName: result.mecOfficialName || result.verifiedBy || 'MEC Official',
+          dateReceived: result.dateReceived || result.verifiedAt || result.createdAt,
+          submittedBy: result.submitter ? `${result.submitter.firstName} ${result.submitter.lastName}` : 'Unknown',
+          createdAt: result.createdAt,
+          updatedAt: result.updatedAt,
+          notes: result.comments
+        };
+      });
       
-      res.json({ mecResults });
+      res.json({ mecResults: transformedResults });
     } catch (error) {
       console.error("Error fetching MEC results:", error);
       res.status(500).json({ message: "Failed to fetch MEC results" });
