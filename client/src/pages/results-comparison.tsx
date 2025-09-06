@@ -51,14 +51,20 @@ export default function ResultsComparison() {
     
     if (Array.isArray(internalData)) {
       internalData.forEach((result: any) => {
-        const key = `${result.pollingCenter?.constituency || result.constituency}_${result.category}_${result.pollingCenterId || 'general'}`;
+        const constituency = result.pollingCenter?.constituency || result.constituency || 'unknown';
+        const pollingCenter = result.pollingCenter?.name || result.pollingCenterId || result.pollingCenter?.id || 'general';
+        const category = result.category || 'unknown';
+        const key = `${constituency}_${category}_${pollingCenter}`;
         internalByKey[key] = result;
       });
     }
     
     if (Array.isArray(mecData)) {
       mecData.forEach((result: any) => {
-        const key = `${result.constituency}_${result.category}_${result.pollingCenter || 'general'}`;
+        const constituency = result.constituency || 'unknown';
+        const pollingCenter = result.pollingCenter || result.pollingCenterId || 'general';
+        const category = result.category || 'unknown';
+        const key = `${constituency}_${category}_${pollingCenter}`;
         mecByKey[key] = result;
       });
     }
@@ -74,16 +80,17 @@ export default function ResultsComparison() {
         const internalTotal = internal?.totalVotes || 0;
         const mecTotal = mec?.totalVotes || 0;
         const difference = Math.abs(internalTotal - mecTotal);
-        const percentageDiff = internalTotal > 0 ? ((difference / internalTotal) * 100) : 0;
+        const baseValue = Math.max(internalTotal, mecTotal);
+        const percentageDiff = baseValue > 0 ? ((difference / baseValue) * 100) : 0;
         
         comparisons.push({
           key,
           internal,
           mec,
-          constituencyId: internal?.pollingCenter?.constituencyId || internal?.constituencyId || mec?.constituencyId,
-          constituencyName: internal?.pollingCenter?.constituency || internal?.constituency || mec?.constituency,
-          pollingCenterName: internal?.pollingCenter?.name || internal?.pollingCenterName || mec?.pollingCenter,
-          category: internal?.category || mec?.category,
+          constituencyId: internal?.pollingCenter?.constituencyId || internal?.constituencyId || mec?.constituencyId || 'unknown',
+          constituencyName: internal?.pollingCenter?.constituency || internal?.constituency || mec?.constituency || 'Unknown Constituency',
+          pollingCenterName: internal?.pollingCenter?.name || internal?.pollingCenterName || mec?.pollingCenter || 'Unknown Center',
+          category: internal?.category || mec?.category || 'unknown',
           internalTotal,
           mecTotal,
           difference,
@@ -134,8 +141,10 @@ export default function ResultsComparison() {
 
   // Filter comparisons
   const filteredComparisons = comparisons.filter((comparison: any) => {
-    const matchesSearch = comparison.constituencyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         comparison.pollingCenterName?.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = !searchTerm || 
+                         comparison.constituencyName?.toLowerCase().includes(searchLower) ||
+                         comparison.pollingCenterName?.toLowerCase().includes(searchLower);
     const matchesCategory = categoryFilter === "all" || comparison.category === categoryFilter;
     const matchesConstituency = constituencyFilter === "all" || comparison.constituencyId === constituencyFilter;
     const matchesDiscrepancy = discrepancyFilter === "all" || comparison.status === discrepancyFilter;
