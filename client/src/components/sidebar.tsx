@@ -15,10 +15,15 @@ import {
   MessageSquare,
   MessageCircle,
   Building2,
-  GitCompare
+  GitCompare,
+  Menu,
+  X
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/language-context";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 const getNavigation = (t: (key: string) => string) => [
   { name: t("nav.dashboard"), href: "/", icon: BarChart3, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
@@ -37,7 +42,7 @@ const getNavigation = (t: (key: string) => string) => [
   { name: t("nav.profile"), href: "/profile", icon: User, roles: ["agent", "supervisor", "admin", "reviewer", "president", "mp"] },
 ];
 
-export default function Sidebar() {
+function SidebarContent({ onItemClick }: { onItemClick?: () => void }) {
   const [location] = useLocation();
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -48,35 +53,65 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="w-64 bg-white shadow-sm h-screen">
-      <div className="p-4">
-        <div className="space-y-1">
-          {filteredNavigation.map((item) => {
-            const isActive = location === item.href;
-            return (
-              <Link key={item.name} href={item.href}>
-                <div
+    <div className="p-4 sm:p-6">
+      <div className="space-y-1">
+        {filteredNavigation.map((item) => {
+          const isActive = location === item.href;
+          return (
+            <Link key={item.name} href={item.href}>
+              <div
+                className={cn(
+                  "group flex items-center px-3 py-3 text-sm sm:text-base font-medium rounded-md transition-colors cursor-pointer min-h-[44px]",
+                  isActive
+                    ? "bg-primary-50 text-primary-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                )}
+                data-testid={`link-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+                onClick={onItemClick}
+              >
+                <item.icon
                   className={cn(
-                    "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer",
-                    isActive
-                      ? "bg-primary-50 text-primary-700"
-                      : "text-gray-700 hover:bg-gray-50"
+                    "mr-3 h-5 w-5 sm:h-6 sm:w-6",
+                    isActive ? "text-primary-500" : "text-gray-400"
                   )}
-                  data-testid={`link-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  <item.icon
-                    className={cn(
-                      "mr-3 h-5 w-5",
-                      isActive ? "text-primary-500" : "text-gray-400"
-                    )}
-                  />
-                  {item.name}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+                />
+                {item.name}
+              </div>
+            </Link>
+          );
+        })}
       </div>
-    </aside>
+    </div>
+  );
+}
+
+export default function Sidebar() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      {/* Mobile Sidebar */}
+      <div className="lg:hidden">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="fixed top-4 left-4 z-50 h-10 w-10 p-0 bg-white shadow-md hover:bg-gray-50"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-80 p-0">
+            <SidebarContent onItemClick={() => setOpen(false)} />
+          </SheetContent>
+        </Sheet>
+      </div>
+      
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:block w-64 bg-white shadow-sm h-screen">
+        <SidebarContent />
+      </aside>
+    </>
   );
 }

@@ -13,21 +13,23 @@ export default function Navigation() {
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          <div className="flex items-center">
+          <div className="flex items-center ml-12 lg:ml-0">
             <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center mr-3">
               <Vote className="text-white h-4 w-4" />
             </div>
-            <h1 className="text-xl font-semibold text-gray-900" data-testid="text-app-title">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900" data-testid="text-app-title">
               PTC System
             </h1>
           </div>
           
-          <div className="flex items-center space-x-4">
-            {/* Language Selector */}
-            <LanguageSelector />
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Language Selector - hidden on very small screens */}
+            <div className="hidden sm:block">
+              <LanguageSelector />
+            </div>
             
-            {/* Real-time Status Indicator */}
-            <div className="flex items-center space-x-2">
+            {/* Real-time Status Indicator - hidden on small screens */}
+            <div className="hidden md:flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" data-testid="indicator-live-status"></div>
               <span className="text-sm text-gray-600">{t("common.active")}</span>
             </div>
@@ -40,12 +42,13 @@ export default function Navigation() {
                 alt="User avatar"
                 data-testid="img-user-avatar"
               />
-              <span className="text-sm font-medium text-gray-700" data-testid="text-user-name">
+              <span className="hidden sm:block text-sm font-medium text-gray-700" data-testid="text-user-name">
                 {user?.firstName} {user?.lastName}
               </span>
               <Button 
                 variant="ghost" 
                 size="sm"
+                className="min-h-[44px] px-2 sm:px-4"
                 onClick={async () => {
                   try {
                     await fetch("/api/logout", { method: "POST" });
@@ -57,7 +60,8 @@ export default function Navigation() {
                 }}
                 data-testid="button-logout"
               >
-                Logout
+                <span className="hidden sm:inline">Logout</span>
+                <span className="sm:hidden">Exit</span>
               </Button>
             </div>
           </div>
