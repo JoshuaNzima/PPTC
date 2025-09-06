@@ -40,8 +40,8 @@ export default function ResultsComparison() {
 
   // Combine and compare results
   const compareResults = () => {
-    const internalData = internalResults?.results || [];
-    const mecData = mecResults?.results || [];
+    const internalData = internalResults || [];
+    const mecData = mecResults?.mecResults || [];
     
     const comparisons: any[] = [];
     
@@ -50,12 +50,12 @@ export default function ResultsComparison() {
     const mecByKey: { [key: string]: any } = {};
     
     internalData.forEach((result: any) => {
-      const key = `${result.constituencyId}_${result.category}_${result.pollingCenterId || 'general'}`;
+      const key = `${result.pollingCenter?.constituency || result.constituency}_${result.category}_${result.pollingCenterId || 'general'}`;
       internalByKey[key] = result;
     });
     
     mecData.forEach((result: any) => {
-      const key = `${result.constituencyId}_${result.category}_${result.pollingCenterId || 'general'}`;
+      const key = `${result.constituency}_${result.category}_${result.pollingCenter || 'general'}`;
       mecByKey[key] = result;
     });
     
@@ -76,9 +76,9 @@ export default function ResultsComparison() {
           key,
           internal,
           mec,
-          constituencyId: internal?.constituencyId || mec?.constituencyId,
-          constituencyName: internal?.constituencyName || mec?.constituencyName,
-          pollingCenterName: internal?.pollingCenterName || mec?.pollingCenterName,
+          constituencyId: internal?.pollingCenter?.constituencyId || internal?.constituencyId || mec?.constituencyId,
+          constituencyName: internal?.pollingCenter?.constituency || internal?.constituency || mec?.constituency,
+          pollingCenterName: internal?.pollingCenter?.name || internal?.pollingCenterName || mec?.pollingCenter,
           category: internal?.category || mec?.category,
           internalTotal,
           mecTotal,
@@ -258,7 +258,7 @@ export default function ResultsComparison() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Constituencies</SelectItem>
-                {constituencies?.map((constituency: any) => (
+                {constituencies && constituencies.map((constituency: any) => (
                   <SelectItem key={constituency.id} value={constituency.id}>
                     {constituency.name}
                   </SelectItem>
