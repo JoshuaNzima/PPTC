@@ -29,6 +29,7 @@ const getNavigation = (t: (key: string) => string) => [
   { name: t("nav.dashboard"), href: "/", icon: BarChart3, roles: ["agent", "supervisor", "admin", "observer"] },
   { name: t("nav.submit_results"), href: "/submit-results", icon: Plus, roles: ["agent", "supervisor", "admin"] },
   { name: t("nav.mec_results"), href: "/mec-results", icon: Building2, roles: ["admin", "supervisor", "observer"] },
+  { name: t("nav.internal_results"), href: "/internal-results", icon: FileText, roles: ["admin", "supervisor", "observer"] },
   { name: t("nav.results_comparison"), href: "/results-comparison", icon: GitCompare, roles: ["admin", "supervisor", "observer"] },
   { name: t("nav.complaints"), href: "/complaints", icon: MessageSquare, roles: ["agent", "supervisor", "admin", "observer"] },
   { name: t("nav.verify_results"), href: "/verify-results", icon: CheckCircle, roles: ["supervisor", "admin"] },

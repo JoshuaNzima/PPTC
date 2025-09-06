@@ -21,6 +21,7 @@ import { PoliticalPartiesPage } from "@/pages/political-parties";
 import DataManagement from "@/pages/data-management";
 import ComplaintsPage from "@/pages/complaints";
 import MECResultsPage from "@/pages/mec-results";
+import InternalResultsPage from "@/pages/internal-results";
 import ResultsComparisonPage from "@/pages/results-comparison";
 import Navigation from "@/components/navigation";
 import Sidebar from "@/components/sidebar";
@@ -46,6 +47,7 @@ function Router() {
                   <Route path="/submit-results" component={SubmitResults} />
                   <Route path="/complaints" component={ComplaintsPage} />
                   <Route path="/mec-results" component={MECResultsPage} />
+                  <Route path="/internal-results" component={InternalResultsPage} />
                   <Route path="/results-comparison" component={ResultsComparisonPage} />
                   <Route path="/verify-results" component={VerifyResults} />
                   <Route path="/reports" component={Reports} />
