@@ -37,11 +37,11 @@ function Router() {
         <Route path="/" component={Landing} />
       ) : (
         <>
-          <div className="min-h-screen bg-gray-50">
+          <div className="h-screen flex flex-col bg-gray-50">
             <Navigation />
-            <div className="flex flex-col lg:flex-row">
+            <div className="flex flex-1 overflow-hidden">
               <Sidebar />
-              <main className="flex-1 p-4 sm:p-6">
+              <main className="flex-1 overflow-auto p-4 sm:p-6">
                 <Switch>
                   <Route path="/" component={Dashboard} />
                   <Route path="/submit-results" component={SubmitResults} />

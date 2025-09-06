@@ -122,10 +122,10 @@ export default function Sidebar() {
       
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "hidden lg:block bg-white shadow-sm h-screen transition-all duration-300",
+        "hidden lg:flex lg:flex-col bg-white shadow-sm h-full transition-all duration-300",
         desktopCollapsed ? "w-16" : "w-64"
       )}>
-        <div className="flex justify-end p-2">
+        <div className="flex justify-end p-2 flex-shrink-0">
           <Button
             variant="ghost"
             size="sm"
@@ -135,7 +135,9 @@ export default function Sidebar() {
             {desktopCollapsed ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
           </Button>
         </div>
-        <SidebarContent collapsed={desktopCollapsed} />
+        <div className="flex-1 overflow-y-auto">
+          <SidebarContent collapsed={desktopCollapsed} />
+        </div>
       </aside>
     </>
   );
