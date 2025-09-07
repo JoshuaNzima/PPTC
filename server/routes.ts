@@ -419,7 +419,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.post('/api/register', async (req, res) => {
     try {
-      console.log('Registration request body:', req.body);
       const userData = validateRegister(req.body);
 
       // Check if user already exists

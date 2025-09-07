@@ -127,12 +127,7 @@ export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
 
 // Validation schemas
 export const validateRegister = (data: unknown) => {
-  try {
-    return registerUserSchema.parse(data);
-  } catch (error) {
-    console.error('Registration validation error:', error);
-    throw error;
-  }
+  return registerUserSchema.parse(data);
 };
 
 export const validateLogin = (data: unknown) => {
