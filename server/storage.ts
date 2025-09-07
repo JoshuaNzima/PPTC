@@ -1434,7 +1434,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(complaints.createdAt));
   }
 
-  async createComplaint(complaintData: InsertComplaint): Promise<Complaint> {
+  async createComplaint(complaintData: typeof complaints.$inferInsert): Promise<Complaint> {
     const [complaint] = await db
       .insert(complaints)
       .values(complaintData)

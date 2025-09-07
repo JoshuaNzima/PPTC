@@ -111,7 +111,7 @@ export class ExcelImporter {
             district: district,
             region: region,
             wards: new Map() 
-          });
+          } as any);
         }
 
         const constituency = constituencyMap.get(constituencyId)!;
@@ -161,8 +161,8 @@ export class ExcelImporter {
           id: constituencyId,
           name: constituency.name,
           code: constituencyId,
-          district: constituency.district || 'Unknown',
-          state: constituency.region || 'Unknown',
+          district: (constituency as any).district || 'Unknown',
+          state: (constituency as any).region || 'Unknown',
         });
 
         for (const [wardId, ward] of Array.from(constituency.wards.entries())) {
@@ -201,8 +201,8 @@ export class ExcelImporter {
               code: `PC-${centre.id}`,
               name: centre.name,
               constituency: constituency.name,
-              district: constituency.district || 'Unknown',
-              state: constituency.region || 'Unknown',
+              district: (constituency as any).district || 'Unknown',
+              state: (constituency as any).region || 'Unknown',
               registeredVoters: centre.voters,
               centreId: centre.id,
             });
