@@ -217,64 +217,66 @@ export default function Complaints() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <MessageSquare className="h-8 w-8" />
-            Election Complaints System
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Monitor and manage election-related complaints and irregularities
-          </p>
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      {/* Mobile-First Header */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+              <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8" />
+              <span className="leading-tight">Election Complaints</span>
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              Monitor and manage election complaints
+            </p>
+          </div>
+          {canSubmitComplaint && (
+            <Dialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full sm:w-auto flex items-center justify-center gap-2 h-12 sm:h-10 text-base sm:text-sm" data-testid="button-submit-complaint">
+                  <Plus className="h-5 w-5 sm:h-4 sm:w-4" />
+                  Submit Complaint
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto m-2">
+                <DialogHeader>
+                  <DialogTitle>Submit New Complaint</DialogTitle>
+                </DialogHeader>
+                <ComplaintSubmissionForm onSuccess={() => {
+                  setIsSubmitDialogOpen(false);
+                  queryClient.invalidateQueries({ queryKey: ["/api/complaints"] });
+                  toast({
+                    title: "Success",
+                    description: "Complaint submitted successfully",
+                  });
+                }} />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
-        {canSubmitComplaint && (
-          <Dialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Submit Complaint
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Submit New Complaint</DialogTitle>
-              </DialogHeader>
-              <ComplaintSubmissionForm onSuccess={() => {
-                setIsSubmitDialogOpen(false);
-                queryClient.invalidateQueries({ queryKey: ["/api/complaints"] });
-                toast({
-                  title: "Success",
-                  description: "Complaint submitted successfully",
-                });
-              }} />
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="p-6">
+      {/* Mobile-First Statistics Cards */}
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="touch-none">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center">
-              <MessageSquare className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Complaints</p>
-                <p className="text-2xl font-bold text-gray-900">{complaints.length}</p>
+              <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
+              <div className="ml-3 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900" data-testid="text-total-complaints">{complaints.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="touch-none">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center">
-              <Clock className="h-8 w-8 text-yellow-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending Review</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600 flex-shrink-0" />
+              <div className="ml-3 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Pending</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900" data-testid="text-pending-complaints">
                   {complaints.filter((c: any) => c.status === 'pending' || c.status === 'under_review').length}
                 </p>
               </div>
@@ -282,13 +284,13 @@ export default function Complaints() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="touch-none">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Resolved</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 flex-shrink-0" />
+              <div className="ml-3 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Resolved</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900" data-testid="text-resolved-complaints">
                   {complaints.filter((c: any) => c.status === 'resolved').length}
                 </p>
               </div>
@@ -296,13 +298,13 @@ export default function Complaints() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
+        <Card className="touch-none col-span-2 sm:col-span-2 lg:col-span-1">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Urgent</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-red-600 flex-shrink-0" />
+              <div className="ml-3 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Urgent</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900" data-testid="text-urgent-complaints">
                   {complaints.filter((c: any) => c.priority === 'urgent').length}
                 </p>
               </div>
@@ -311,30 +313,31 @@ export default function Complaints() {
         </Card>
       </div>
 
-      {/* Filters and Search */}
+      {/* Mobile-First Filters and Search */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Filter className="h-5 w-5" />
             Filter Complaints
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-64">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search complaints..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            
+        <CardContent className="space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search complaints..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-12 sm:h-10 text-base sm:text-sm"
+              data-testid="input-search-complaints"
+            />
+          </div>
+          
+          {/* Filter Selects */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="h-12 sm:h-10 text-base sm:text-sm" data-testid="select-status-filter">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -347,7 +350,7 @@ export default function Complaints() {
             </Select>
 
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="h-12 sm:h-10 text-base sm:text-sm" data-testid="select-priority-filter">
                 <SelectValue placeholder="Filter by priority" />
               </SelectTrigger>
               <SelectContent>
@@ -370,10 +373,10 @@ export default function Complaints() {
         <CardContent>
           <div className="space-y-4">
             {filteredComplaints.length === 0 ? (
-              <div className="text-center py-12">
-                <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No complaints found</h3>
-                <p className="text-gray-600">
+              <div className="text-center py-8 sm:py-12">
+                <MessageSquare className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No complaints found</h3>
+                <p className="text-sm sm:text-base text-gray-600 px-4">
                   {searchTerm || statusFilter !== "all" || priorityFilter !== "all" 
                     ? "No complaints match your current filters."
                     : "No complaints have been submitted yet."
@@ -382,79 +385,96 @@ export default function Complaints() {
               </div>
             ) : (
               filteredComplaints.map((complaint: any, index: number) => (
-                <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-gray-900">{complaint.title}</h3>
+                <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors" data-testid={`card-complaint-${index}`}>
+                  <div className="space-y-3">
+                    {/* Header with title and badges */}
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-start gap-2">
+                        <h3 className="font-semibold text-gray-900 text-base sm:text-lg flex-1 min-w-0 pr-2">{complaint.title}</h3>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
                         {getStatusBadge(complaint.status)}
                         {getPriorityBadge(complaint.priority)}
                       </div>
-                      <p className="text-gray-600 text-sm mb-2 line-clamp-2">
-                        {complaint.description}
-                      </p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {complaint.createdAt ? format(new Date(complaint.createdAt), 'MMM dd, yyyy HH:mm') : 'Unknown date'}
-                        </span>
-                        <span>Category: {complaint.category}</span>
-                        {complaint.constituencyName && (
-                          <span>Location: {complaint.constituencyName}</span>
-                        )}
-                      </div>
                     </div>
-                    <div className="ml-4 flex gap-2">
+                    
+                    {/* Description */}
+                    <p className="text-gray-600 text-sm sm:text-base line-clamp-2">
+                      {complaint.description}
+                    </p>
+                    
+                    {/* Metadata */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {complaint.createdAt ? format(new Date(complaint.createdAt), 'MMM dd, yyyy') : 'Unknown date'}
+                      </span>
+                      <span>Category: {complaint.category}</span>
+                      {complaint.constituencyName && (
+                        <span>Location: {complaint.constituencyName}</span>
+                      )}
+                    </div>
+                    
+                    {/* Mobile-First Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-gray-100">
                       <Button
                         variant="outline"
-                        size="sm"
+                        className="w-full sm:w-auto h-10 text-sm"
                         onClick={() => handleViewComplaint(complaint)}
+                        data-testid={`button-view-complaint-${index}`}
                       >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
                       </Button>
-                      {canEscalateComplaint && canComplaintBeEscalated(complaint.status) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedComplaint(complaint);
-                            setIsEscalateDialogOpen(true);
-                          }}
-                          className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                        >
-                          <Upload className="h-4 w-4 mr-1" />
-                          Escalate
-                        </Button>
-                      )}
-                      {canManageComplaint && canComplaintBeManaged(complaint.status) && (
-                        <>
+                      
+                      {/* Conditional Action Buttons */}
+                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        {canEscalateComplaint && canComplaintBeEscalated(complaint.status) && (
                           <Button
                             variant="outline"
-                            size="sm"
+                            className="w-full sm:w-auto h-10 text-sm text-blue-600 border-blue-600 hover:bg-blue-50"
                             onClick={() => {
                               setSelectedComplaint(complaint);
-                              setIsResolveDialogOpen(true);
+                              setIsEscalateDialogOpen(true);
                             }}
-                            className="text-green-600 border-green-600 hover:bg-green-50"
+                            data-testid={`button-escalate-complaint-${index}`}
                           >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Resolve
+                            <Upload className="h-4 w-4 mr-2" />
+                            Escalate to MEC
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedComplaint(complaint);
-                              setIsDismissDialogOpen(true);
-                            }}
-                            className="text-red-600 border-red-600 hover:bg-red-50"
-                          >
-                            <AlertCircle className="h-4 w-4 mr-1" />
-                            Dismiss
-                          </Button>
-                        </>
-                      )}
+                        )}
+                        
+                        {canManageComplaint && canComplaintBeManaged(complaint.status) && (
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            <Button
+                              variant="outline"
+                              className="flex-1 sm:w-auto h-10 text-sm text-green-600 border-green-600 hover:bg-green-50"
+                              onClick={() => {
+                                setSelectedComplaint(complaint);
+                                setIsResolveDialogOpen(true);
+                              }}
+                              data-testid={`button-resolve-complaint-${index}`}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1 sm:mr-2" />
+                              <span className="hidden sm:inline">Resolve</span>
+                              <span className="sm:hidden">✓</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="flex-1 sm:w-auto h-10 text-sm text-red-600 border-red-600 hover:bg-red-50"
+                              onClick={() => {
+                                setSelectedComplaint(complaint);
+                                setIsDismissDialogOpen(true);
+                              }}
+                              data-testid={`button-dismiss-complaint-${index}`}
+                            >
+                              <AlertCircle className="h-4 w-4 mr-1 sm:mr-2" />
+                              <span className="hidden sm:inline">Dismiss</span>
+                              <span className="sm:hidden">✗</span>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -464,11 +484,11 @@ export default function Complaints() {
         </CardContent>
       </Card>
 
-      {/* View Complaint Dialog */}
+      {/* Mobile-First View Complaint Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto m-2">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-lg">
               <MessageSquare className="h-5 w-5" />
               Complaint Details
             </DialogTitle>
@@ -485,7 +505,7 @@ export default function Complaints() {
                 <p className="text-gray-600 mt-2">{selectedComplaint.description}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                 <div>
                   <span className="font-medium text-gray-700">Category:</span>
                   <p className="text-gray-600">{selectedComplaint.category}</p>
