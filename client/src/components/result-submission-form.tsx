@@ -276,7 +276,7 @@ export default function ResultSubmissionForm() {
                           <SelectItem key={center.id} value={center.id}>
                             {center.code} - {center.name}
                           </SelectItem>
-                        ))}
+                        )) || null}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -343,7 +343,7 @@ export default function ResultSubmissionForm() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {candidates && Array.isArray(candidates) && 
+                        {candidates && Array.isArray(candidates) ? 
                          (candidates as any[])
                           .filter((c: any) => {
                             // Filter by category first
@@ -421,7 +421,7 @@ export default function ResultSubmissionForm() {
                                 </TableCell>
                               </TableRow>
                             );
-                          })
+                          }) : null
                         }
                       </TableBody>
                     </Table>

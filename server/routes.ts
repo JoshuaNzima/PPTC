@@ -1211,7 +1211,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Parsed data:", parsedData);
 
-      const validatedData = insertResultSchema.parse(parsedData);
+      // Validate that required fields are present
+      if (!parsedData.pollingCenterId || !parsedData.category) {
+        return res.status(400).json({ 
+          message: "Missing required fields: pollingCenterId and category are required" 
+        });
+      }
+
+      const validatedData = {
+        pollingCenterId: parsedData.pollingCenterId,
+        category: parsedData.category as 'president' | 'mp' | 'councilor',
+        presidentialVotes: parsedData.presidentialVotes,
+        mpVotes: parsedData.mpVotes,
+        councilorVotes: parsedData.councilorVotes,
+        invalidVotes: parsedData.invalidVotes,
+        totalVotes: parsedData.totalVotes,
+        submittedBy: parsedData.submittedBy,
+        submissionChannel: 'portal' as const,
+        comments: parsedData.comments || null,
+        status: 'pending' as const,
+        source: 'internal' as const
+      };
 
       const result = await storage.createResult(validatedData);
 
@@ -1260,7 +1280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Result submitted successfully",
         result: {
           id: result.id,
-          pollingCenter: result.pollingCenter,
+          pollingCenterId: result.pollingCenterId,
           category: result.category,
           status: result.status,
           createdAt: result.createdAt
