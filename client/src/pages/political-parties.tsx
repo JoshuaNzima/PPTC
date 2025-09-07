@@ -1112,5 +1112,6 @@ export function PoliticalPartiesPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </div>
   );
 }
