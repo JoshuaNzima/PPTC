@@ -481,8 +481,10 @@ export const insertResultSchema = createInsertSchema(results, {
   mpVotes: z.record(z.number()).nullable().optional(),
   councilorVotes: z.record(z.number()).nullable().optional(),
   totalVotes: z.number().optional(),
-  submittedBy: z.string(),
   submissionChannel: z.string().optional(),
+}).omit({
+  id: true,
+  verifiedAt: true,
 });
 
 export const insertResultFileSchema = createInsertSchema(resultFiles).omit({
