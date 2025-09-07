@@ -1169,15 +1169,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/results", isAuthenticated, upload.array('files', 10), async (req: any, res) => {
     try {
-      const validatedData = insertResultSchema.parse({
+      console.log("Received result submission:", req.body);
+
+      // Parse the vote data properly
+      const parsedData = {
         ...req.body,
         presidentialVotes: req.body.presidentialVotes ? JSON.parse(req.body.presidentialVotes) : null,
         mpVotes: req.body.mpVotes ? JSON.parse(req.body.mpVotes) : null,
         councilorVotes: req.body.councilorVotes ? JSON.parse(req.body.councilorVotes) : null,
-        invalidVotes: parseInt(req.body.invalidVotes),
+        invalidVotes: parseInt(req.body.invalidVotes) || 0,
         submittedBy: req.user.id,
-        submissionChannel: 'portal', // Default to portal since it's coming from the web interface
-      });
+        submissionChannel: 'portal',
+      };
+
+      // Calculate total votes from all categories
+      let totalVotes = parsedData.invalidVotes;
+      
+      if (parsedData.presidentialVotes) {
+        Object.values(parsedData.presidentialVotes).forEach((votes: any) => {
+          totalVotes += parseInt(votes) || 0;
+        });
+      }
+      
+      if (parsedData.mpVotes) {
+        Object.values(parsedData.mpVotes).forEach((votes: any) => {
+          totalVotes += parseInt(votes) || 0;
+        });
+      }
+      
+      if (parsedData.councilorVotes) {
+        Object.values(parsedData.councilorVotes).forEach((votes: any) => {
+          totalVotes += parseInt(votes) || 0;
+        });
+      }
+
+      parsedData.totalVotes = totalVotes;
+
+      console.log("Parsed data:", parsedData);
+
+      const validatedData = insertResultSchema.parse(parsedData);
 
       const result = await storage.createResult(validatedData);
 
@@ -1234,7 +1264,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error creating result:", error);
-      res.status(400).json({ message: "Failed to create result" });
+      console.error("Error details:", error instanceof Error ? error.message : error);
+      res.status(400).json({ 
+        message: "Failed to create result",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

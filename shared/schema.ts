@@ -177,16 +177,16 @@ export const results = pgTable("results", {
   submittedBy: varchar("submitted_by").references(() => users.id).notNull(),
   verifiedBy: varchar("verified_by").references(() => users.id),
   category: candidateCategoryEnum("category").notNull(),
-  
+
   // Presidential votes
   presidentialVotes: jsonb("presidential_votes"), // {candidateId: votes}
-  
+
   // MP votes  
   mpVotes: jsonb("mp_votes"), // {candidateId: votes}
-  
+
   // Councilor votes
   councilorVotes: jsonb("councilor_votes"), // {candidateId: votes}
-  
+
   invalidVotes: integer("invalid_votes").notNull(),
   totalVotes: integer("total_votes").notNull(),
   status: resultStatusEnum("status").default('pending').notNull(),
@@ -256,15 +256,15 @@ export const complaints = pgTable("complaints", {
   category: complaintCategoryEnum("category").notNull(),
   priority: complaintPriorityEnum("priority").default('medium').notNull(),
   status: complaintStatusEnum("status").default('submitted').notNull(),
-  
+
   // Location references
   pollingCenterId: varchar("polling_center_id").references(() => pollingCenters.id),
   constituencyId: varchar("constituency_id").references(() => constituencies.id),
   wardId: varchar("ward_id").references(() => wards.id),
-  
+
   // Affected result reference (if complaint is about a specific result)
   resultId: varchar("result_id").references(() => results.id),
-  
+
   // Escalation fields
   escalatedToMec: boolean("escalated_to_mec").default(false).notNull(),
   escalatedBy: varchar("escalated_by").references(() => users.id),
@@ -275,12 +275,12 @@ export const complaints = pgTable("complaints", {
   mecFollowUpDate: timestamp("mec_follow_up_date"),
   mecResponse: text("mec_response"),
   mecResolutionDate: timestamp("mec_resolution_date"),
-  
+
   // Additional details
   evidence: jsonb("evidence"), // Links to uploaded files/photos
   contactInfo: jsonb("contact_info"), // Phone, email for follow-up
   resolutionNotes: text("resolution_notes"),
-  
+
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -473,12 +473,16 @@ export const insertCandidateSchema = createInsertSchema(candidates).omit({
   createdAt: true,
 });
 
-export const insertResultSchema = createInsertSchema(results).omit({
-  id: true,
-  totalVotes: true, // This is calculated in the backend
+export const insertResultSchema = createInsertSchema(results, {
   createdAt: true,
   updatedAt: true,
-  verifiedAt: true,
+}).extend({
+  presidentialVotes: z.record(z.number()).nullable().optional(),
+  mpVotes: z.record(z.number()).nullable().optional(),
+  councilorVotes: z.record(z.number()).nullable().optional(),
+  totalVotes: z.number().optional(),
+  submittedBy: z.string(),
+  submissionChannel: z.string().optional(),
 });
 
 export const insertResultFileSchema = createInsertSchema(resultFiles).omit({

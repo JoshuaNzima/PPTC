@@ -72,16 +72,50 @@ export default function ResultSubmissionForm() {
   const submitMutation = useMutation({
     mutationFn: async (data: FormData) => {
       const formData = new FormData();
-      
+
+      // Extract candidate IDs and votes based on the current category
+      let candidateVotes: { candidateId: string; votes: number }[] = [];
+      if (data.category === "president" && data.presidentialVotes) {
+        candidateVotes = Object.entries(data.presidentialVotes).map(([candidateId, votes]) => ({ candidateId, votes: Number(votes) }));
+      } else if (data.category === "mp" && data.mpVotes) {
+        candidateVotes = Object.entries(data.mpVotes).map(([candidateId, votes]) => ({ candidateId, votes: Number(votes) }));
+      } else if (data.category === "councilor" && data.councilorVotes) {
+        candidateVotes = Object.entries(data.councilorVotes).map(([candidateId, votes]) => ({ candidateId, votes: Number(votes) }));
+      }
+
       // Append form data
-      Object.entries(data).forEach(([key, value]) => {
-        if (typeof value === 'object' && value !== null) {
-          formData.append(key, JSON.stringify(value));
-        } else {
-          formData.append(key, value.toString());
-        }
-      });
-      
+      formData.append("pollingCenterId", data.pollingCenterId);
+      formData.append("category", data.category);
+      formData.append("invalidVotes", data.invalidVotes.toString());
+
+      // Format candidate votes based on category
+      if (data.category === "president") {
+        const presidentialVotes = candidateVotes.reduce((acc, vote) => {
+          acc[vote.candidateId] = vote.votes;
+          return acc;
+        }, {} as Record<string, number>);
+        formData.append("presidentialVotes", JSON.stringify(presidentialVotes));
+        formData.append("mpVotes", JSON.stringify(null));
+        formData.append("councilorVotes", JSON.stringify(null));
+      } else if (data.category === "mp") {
+        const mpVotes = candidateVotes.reduce((acc, vote) => {
+          acc[vote.candidateId] = vote.votes;
+          return acc;
+        }, {} as Record<string, number>);
+        formData.append("presidentialVotes", JSON.stringify(null));
+        formData.append("mpVotes", JSON.stringify(mpVotes));
+        formData.append("councilorVotes", JSON.stringify(null));
+      } else if (data.category === "councilor") {
+        const councilorVotes = candidateVotes.reduce((acc, vote) => {
+          acc[vote.candidateId] = vote.votes;
+          return acc;
+        }, {} as Record<string, number>);
+        formData.append("presidentialVotes", JSON.stringify(null));
+        formData.append("mpVotes", JSON.stringify(null));
+        formData.append("councilorVotes", JSON.stringify(councilorVotes));
+      }
+
+
       // Append files
       files.forEach(file => {
         formData.append('files', file);
@@ -148,7 +182,7 @@ export default function ResultSubmissionForm() {
   const calculateTotalVotes = (data: FormData) => {
     let total = data.invalidVotes || 0;
     const category = data.category;
-    
+
     if (category === 'president' && data.presidentialVotes) {
       total += Object.values(data.presidentialVotes).reduce((sum, votes) => sum + (Number(votes) || 0), 0);
     } else if (category === 'mp' && data.mpVotes) {
@@ -156,18 +190,18 @@ export default function ResultSubmissionForm() {
     } else if (category === 'councilor' && data.councilorVotes) {
       total += Object.values(data.councilorVotes).reduce((sum, votes) => sum + (Number(votes) || 0), 0);
     }
-    
+
     return total;
   };
 
   const getSummaryData = () => {
     if (!pendingSubmission) return null;
-    
+
     const category = pendingSubmission.category;
     const votes = category === 'president' ? pendingSubmission.presidentialVotes :
                   category === 'mp' ? pendingSubmission.mpVotes : 
                   pendingSubmission.councilorVotes;
-    
+
     const candidateVotes = [];
     if (votes) {
       for (const [candidateId, voteCount] of Object.entries(votes)) {
@@ -182,7 +216,7 @@ export default function ResultSubmissionForm() {
         }
       }
     }
-    
+
     return {
       candidateVotes,
       invalidVotes: pendingSubmission.invalidVotes,
@@ -282,7 +316,7 @@ export default function ResultSubmissionForm() {
                     })()}
                   </Badge>
                 </div>
-                
+
                 <div className="border rounded-lg overflow-hidden">
                   <ScrollArea className="h-[300px] sm:h-[400px]">
                     <Table>
@@ -302,14 +336,14 @@ export default function ResultSubmissionForm() {
                           .filter((c: any) => {
                             // Filter by category first
                             if (c.category !== form.watch("category")) return false;
-                            
+
                             // For presidential elections, show all presidential candidates (no constituency restriction)
                             if (form.watch("category") === "president") return true;
-                            
+
                             // For MP and councilor elections, filter by constituency
                             const selectedPollingCenter = (pollingCenters as any[])?.find((pc: any) => pc.id === form.watch("pollingCenterId"));
                             if (!selectedPollingCenter) return false; // Don't show any if no polling center selected for MP/councilor
-                            
+
                             return c.constituency === selectedPollingCenter.constituency;
                           })
                           .sort((a: any, b: any) => {
@@ -321,7 +355,7 @@ export default function ResultSubmissionForm() {
                             const party = (politicalParties as any[])?.find((p: any) => p.id === candidate.partyId || p.name === candidate.party);
                             const fieldName = form.watch("category") === "president" ? "presidentialVotes" :
                                             form.watch("category") === "mp" ? "mpVotes" : "councilorVotes";
-                            
+
                             return (
                               <TableRow key={candidate.id} className="hover:bg-gray-50">
                                 <TableCell className="font-medium text-xs sm:text-sm px-2 sm:px-4">
@@ -384,7 +418,7 @@ export default function ResultSubmissionForm() {
 
 
               </div>
-              
+
               <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-orange-50 rounded-lg border border-orange-200">
                 <FormField
                   control={form.control}
@@ -466,7 +500,7 @@ export default function ResultSubmissionForm() {
         </Form>
       </CardContent>
     </Card>
-    
+
     {/* Mobile-First Confirmation Modal */}
     <AlertDialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
       <AlertDialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto m-2">
@@ -479,14 +513,14 @@ export default function ResultSubmissionForm() {
             Please review the details before submitting the results to ensure accuracy.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        
+
         <div className="space-y-4 py-4">
           {pendingSubmission && (() => {
             const summaryData = getSummaryData();
             const selectedCenter = (pollingCenters as any[])?.find((c: any) => c.id === pendingSubmission.pollingCenterId);
             const categoryLabel = pendingSubmission.category === "president" ? "Presidential" :
                                 pendingSubmission.category === "mp" ? "Members of Parliament" : "Councilor";
-            
+
             return (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
@@ -499,7 +533,7 @@ export default function ResultSubmissionForm() {
                     <p className="font-medium">{categoryLabel}</p>
                   </div>
                 </div>
-                
+
                 {summaryData?.candidateVotes && summaryData.candidateVotes.length > 0 && (
                   <div>
                     <h4 className="font-medium text-gray-800 mb-2">Candidate Votes</h4>
@@ -525,7 +559,7 @@ export default function ResultSubmissionForm() {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="flex justify-between items-center pt-2 border-t">
                   <div className="text-sm">
                     <span className="font-medium text-gray-600">Invalid Votes: </span>
@@ -536,7 +570,7 @@ export default function ResultSubmissionForm() {
                     <span className="text-blue-600">{summaryData?.totalVotes || 0}</span>
                   </div>
                 </div>
-                
+
                 {pendingSubmission.comments && (
                   <div>
                     <span className="font-medium text-gray-600">Comments:</span>
@@ -547,7 +581,7 @@ export default function ResultSubmissionForm() {
             );
           })()}
         </div>
-        
+
         <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
           <AlertDialogCancel className="w-full sm:w-auto h-11 sm:h-9 text-base sm:text-sm">Cancel</AlertDialogCancel>
           <AlertDialogAction 
