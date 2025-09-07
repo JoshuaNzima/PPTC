@@ -81,7 +81,17 @@ export const users = pgTable("users", {
   sessionExpiry: timestamp("session_expiry"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  // Performance indexes for user queries
+  index("idx_users_email").on(table.email),
+  index("idx_users_phone").on(table.phone),
+  index("idx_users_role").on(table.role),
+  index("idx_users_is_active").on(table.isActive),
+  index("idx_users_last_login").on(table.lastLoginAt),
+  index("idx_users_created_at").on(table.createdAt),
+  // Composite indexes for common query patterns
+  index("idx_users_role_active").on(table.role, table.isActive),
+]);
 
 // Constituencies table
 export const constituencies = pgTable("constituencies", {
@@ -189,7 +199,18 @@ export const results = pgTable("results", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   verifiedAt: timestamp("verified_at"),
-});
+}, (table) => [
+  // Performance indexes for commonly queried fields
+  index("idx_results_polling_center").on(table.pollingCenterId),
+  index("idx_results_status").on(table.status),
+  index("idx_results_created_at").on(table.createdAt),
+  index("idx_results_submitted_by").on(table.submittedBy),
+  index("idx_results_category").on(table.category),
+  index("idx_results_source").on(table.source),
+  // Composite indexes for common query patterns
+  index("idx_results_status_created_at").on(table.status, table.createdAt),
+  index("idx_results_polling_center_status").on(table.pollingCenterId, table.status),
+]);
 
 // Result files table (for uploaded photos)
 export const resultFiles = pgTable("result_files", {
@@ -214,7 +235,16 @@ export const auditLogs = pgTable("audit_logs", {
   ipAddress: varchar("ip_address"),
   userAgent: varchar("user_agent"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  // Performance indexes for audit log queries
+  index("idx_audit_logs_user_id").on(table.userId),
+  index("idx_audit_logs_created_at").on(table.createdAt),
+  index("idx_audit_logs_entity_type").on(table.entityType),
+  index("idx_audit_logs_entity_id").on(table.entityId),
+  index("idx_audit_logs_action").on(table.action),
+  // Composite index for user activity queries
+  index("idx_audit_logs_user_created").on(table.userId, table.createdAt),
+]);
 
 // Complaints table
 export const complaints = pgTable("complaints", {
@@ -256,7 +286,19 @@ export const complaints = pgTable("complaints", {
   updatedAt: timestamp("updated_at").defaultNow(),
   reviewedAt: timestamp("reviewed_at"),
   resolvedAt: timestamp("resolved_at"),
-});
+}, (table) => [
+  // Performance indexes for complaint queries
+  index("idx_complaints_status").on(table.status),
+  index("idx_complaints_priority").on(table.priority),
+  index("idx_complaints_submitted_by").on(table.submittedBy),
+  index("idx_complaints_created_at").on(table.createdAt),
+  index("idx_complaints_category").on(table.category),
+  index("idx_complaints_polling_center").on(table.pollingCenterId),
+  index("idx_complaints_escalated_to_mec").on(table.escalatedToMec),
+  // Composite indexes for common query patterns
+  index("idx_complaints_status_priority").on(table.status, table.priority),
+  index("idx_complaints_submitted_created").on(table.submittedBy, table.createdAt),
+]);
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
@@ -468,7 +510,15 @@ export const ussdSessions = pgTable("ussd_sessions", {
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  // Performance indexes for USSD session queries
+  index("idx_ussd_sessions_phone_number").on(table.phoneNumber),
+  index("idx_ussd_sessions_session_id").on(table.sessionId),
+  index("idx_ussd_sessions_expires_at").on(table.expiresAt),
+  index("idx_ussd_sessions_is_active").on(table.isActive),
+  // Composite index for active session lookup by phone
+  index("idx_ussd_sessions_phone_active").on(table.phoneNumber, table.isActive),
+]);
 
 // USSD Provider configurations
 export const ussdProviders = pgTable("ussd_providers", {
