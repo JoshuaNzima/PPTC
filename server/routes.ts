@@ -18,53 +18,118 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Document validation function
-async function validateDocumentData(submittedData: any, uploadedFiles: any[]): Promise<{isValid: boolean, reason?: string}> {
-  // Basic validation checks
+// Enhanced document validation function
+async function validateDocumentData(submittedData: any, uploadedFiles: any[]): Promise<{isValid: boolean, reason?: string, warnings?: string[]}> {
   const checks = [];
+  const warnings = [];
 
-  // Check if total votes are reasonable (within 1-99% of registered voters × 3)
-  const totalVotes = submittedData.presidentialVotes?.reduce((sum: number, vote: any) => sum + vote.votes, 0) +
-    submittedData.mpVotes?.reduce((sum: number, vote: any) => sum + vote.votes, 0) +
-    submittedData.councilorVotes?.reduce((sum: number, vote: any) => sum + vote.votes, 0) +
-    submittedData.invalidVotes;
+  try {
+    // Safely calculate vote totals with input sanitization
+    const safeSum = (votes: any[]) => Array.isArray(votes) ? votes.reduce((sum, vote) => {
+      const voteCount = parseInt(vote?.votes) || 0;
+      return voteCount >= 0 ? sum + voteCount : sum; // Ignore negative votes
+    }, 0) : 0;
 
-  // Check for suspicious patterns
-  if (totalVotes < 10) {
-    checks.push("Total votes unusually low (less than 10)");
-  }
+    const presidentialTotal = safeSum(submittedData.presidentialVotes);
+    const mpTotal = safeSum(submittedData.mpVotes);
+    const councilorTotal = safeSum(submittedData.councilorVotes);
+    const invalidVotes = parseInt(submittedData.invalidVotes) || 0;
+    const totalVotes = presidentialTotal + mpTotal + councilorTotal + invalidVotes;
 
-  // Check if uploaded files exist and have reasonable sizes
-  if (uploadedFiles.length === 0) {
-    checks.push("No supporting documents uploaded");
-  } else {
-    for (const file of uploadedFiles) {
-      if (file.size < 1000) { // Less than 1KB
-        checks.push(`Document ${file.originalname} appears to be too small`);
-      }
-      if (file.size > 8 * 1024 * 1024) { // Larger than 8MB
-        checks.push(`Document ${file.originalname} appears to be unusually large`);
+    // Enhanced vote validation
+    if (totalVotes < 10) {
+      checks.push("Total votes unusually low (less than 10) - please verify counts");
+    }
+
+    if (totalVotes > 10000) {
+      warnings.push("Total votes unusually high (over 10,000) - please double-check");
+    }
+
+    // Check for impossible vote percentages
+    if (invalidVotes > totalVotes * 0.5) {
+      checks.push("Invalid votes exceed 50% of total - please verify invalid vote count");
+    }
+
+    // Vote distribution validation
+    const maxCategoryVotes = Math.max(presidentialTotal, mpTotal, councilorTotal);
+    const minCategoryVotes = Math.min(presidentialTotal, mpTotal, councilorTotal);
+    
+    if (maxCategoryVotes > 0 && minCategoryVotes === 0) {
+      checks.push("One election category has zero votes while others have votes - please verify all categories were counted");
+    }
+
+    // Check for statistical anomalies
+    if (maxCategoryVotes > minCategoryVotes * 3 && minCategoryVotes > 0) {
+      warnings.push("Significant vote disparity between election categories detected");
+    }
+
+    // Enhanced file validation
+    if (uploadedFiles.length === 0) {
+      checks.push("No supporting documents uploaded - documentation is required for verification");
+    } else {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      
+      for (const file of uploadedFiles) {
+        // File size validation
+        if (file.size < 1000) {
+          checks.push(`Document '${file.originalname}' appears to be too small (less than 1KB) - may be corrupt`);
+        }
+        if (file.size > 8 * 1024 * 1024) {
+          checks.push(`Document '${file.originalname}' exceeds size limit (8MB) - please compress the file`);
+        }
+
+        // File type validation
+        if (!allowedTypes.includes(file.mimetype)) {
+          checks.push(`Document '${file.originalname}' has invalid file type - only JPEG, PNG, and PDF files are allowed`);
+        }
+
+        // File name validation
+        if (!file.originalname || file.originalname.length > 255) {
+          checks.push(`Document '${file.originalname}' has invalid filename`);
+        }
       }
     }
-  }
 
-  // Check for mismatched vote counts (simple validation)
-  const hasPresidentialVotes = submittedData.presidentialVotes && submittedData.presidentialVotes.length > 0;
-  const hasMpVotes = submittedData.mpVotes && submittedData.mpVotes.length > 0;
-  const hasCouncilorVotes = submittedData.councilorVotes && submittedData.councilorVotes.length > 0;
+    // Category completeness validation
+    const requiredCategories = ['presidentialVotes', 'mpVotes', 'councilorVotes'];
+    const missingCategories = requiredCategories.filter(category => 
+      !submittedData[category] || !Array.isArray(submittedData[category]) || submittedData[category].length === 0
+    );
 
-  if (!hasPresidentialVotes || !hasMpVotes || !hasCouncilorVotes) {
-    checks.push("Missing vote counts for one or more election categories (Presidential, MP, or Councilor)");
-  }
+    if (missingCategories.length > 0) {
+      checks.push(`Missing vote data for: ${missingCategories.map(c => c.replace('Votes', '')).join(', ')} - all categories are required`);
+    }
 
-  if (checks.length > 0) {
+    // Candidate validation
+    for (const category of requiredCategories) {
+      if (submittedData[category] && Array.isArray(submittedData[category])) {
+        for (const vote of submittedData[category]) {
+          if (!vote.candidateName || vote.candidateName.trim().length === 0) {
+            checks.push(`Empty candidate name found in ${category.replace('Votes', '')} category`);
+          }
+          if (!vote.partyName || vote.partyName.trim().length === 0) {
+            checks.push(`Missing party name for candidate ${vote.candidateName || 'Unknown'} in ${category.replace('Votes', '')} category`);
+          }
+          if (vote.votes < 0) {
+            checks.push(`Negative vote count (${vote.votes}) for candidate ${vote.candidateName || 'Unknown'} - votes cannot be negative`);
+          }
+        }
+      }
+    }
+
+    return {
+      isValid: checks.length === 0,
+      reason: checks.length > 0 ? checks.join('; ') : undefined,
+      warnings: warnings.length > 0 ? warnings : undefined
+    };
+
+  } catch (error) {
+    console.error('Validation error:', error);
     return {
       isValid: false,
-      reason: checks.join("; ")
+      reason: 'Internal validation error - please try again or contact support'
     };
   }
-
-  return { isValid: true };
 }
 
 const upload = multer({
