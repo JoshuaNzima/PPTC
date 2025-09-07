@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { passwordSchema } from "./validation";
 
 // Session storage table.
 export const sessions = pgTable(
@@ -389,7 +390,7 @@ export const registerUserSchema = createInsertSchema(users).pick({
   firstName: true,
   lastName: true,
 }).extend({
-  password: z.string().min(8, "Password must be at least 8 characters long"),
+  password: passwordSchema,
 });
 
 export const loginSchema = z.object({
