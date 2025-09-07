@@ -384,13 +384,15 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
 });
 
-export const registerUserSchema = createInsertSchema(users).pick({
-  email: true,
-  phone: true,
-  firstName: true,
-  lastName: true,
-}).extend({
+export const registerUserSchema = z.object({
+  email: z.string().optional(),
+  phone: z.string().optional(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   password: passwordSchema,
+}).refine((data) => data.email || data.phone, {
+  message: "Either email or phone number is required",
+  path: ["email"],
 });
 
 export const loginSchema = z.object({
