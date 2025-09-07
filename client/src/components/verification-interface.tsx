@@ -139,36 +139,36 @@ export default function VerificationInterface() {
   return (
     <>
       <Card className="border shadow-sm">
-        <CardHeader className="border-b">
-          <CardTitle data-testid="text-verification-queue-title">Verification Queue</CardTitle>
+        <CardHeader className="border-b p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl" data-testid="text-verification-queue-title">Verification Queue</CardTitle>
           <p className="text-sm text-gray-600">Review and verify submitted results</p>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           {isLoading ? (
-            <div className="text-center py-8">Loading verification queue...</div>
+            <div className="text-center py-6 sm:py-8">Loading verification queue...</div>
           ) : pendingResults && pendingResults.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-4 sm:space-y-6">
               {pendingResults.map((result: any) => (
-                <div key={result.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h4 className="font-medium text-gray-900" data-testid={`verification-center-${result.id}`}>
+                <div key={result.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors" data-testid={`verification-card-${result.id}`}>
+                  <div className="space-y-4">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <h4 className="font-medium text-base sm:text-lg text-gray-900" data-testid={`verification-center-${result.id}`}>
                           {result.pollingCenter?.code || 'Unknown Center'}
                         </h4>
-                        <Badge className="status-pending" data-testid={`verification-status-${result.id}`}>
+                        <Badge className="status-pending w-fit" data-testid={`verification-status-${result.id}`}>
                           Pending Review
                         </Badge>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-3">
-                        <div className="md:col-span-2">
-                          <p className="text-gray-600 mb-1">Submission Summary:</p>
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm">
+                        <div className="lg:col-span-2">
+                          <p className="text-gray-600 mb-2 font-medium">Submission Summary:</p>
                           <div className="bg-gray-100 p-3 rounded">
                             <div data-testid={`verification-votes-${result.id}`}>
-                              <div className="flex items-center gap-2 mb-2">
-                                <Users className="h-4 w-4 text-blue-600" />
-                                <span className="font-medium capitalize">
+                              <div className="flex items-center gap-2 mb-3">
+                                <Users className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                                <span className="font-medium text-sm sm:text-base">
                                   {result.category === 'president' ? 'Presidential' : 
                                    result.category === 'mp' ? 'Members of Parliament' : 'Councilor'} Race
                                 </span>
@@ -183,16 +183,16 @@ export default function VerificationInterface() {
                                   return (
                                     <div>
                                       {topCandidates.map((candidate) => (
-                                        <div key={candidate.candidateId} className="flex items-center justify-between">
-                                          <div className="flex items-center gap-2">
+                                        <div key={candidate.candidateId} className="flex items-center justify-between py-1">
+                                          <div className="flex items-center gap-2 min-w-0 flex-1">
                                             <div 
-                                              className="w-3 h-3 rounded-full" 
+                                              className="w-3 h-3 rounded-full flex-shrink-0" 
                                               style={{ backgroundColor: candidate.partyColor }}
                                             />
-                                            <span className="text-sm font-medium">{candidate.name}</span>
-                                            <span className="text-xs text-gray-500">({candidate.party})</span>
+                                            <span className="text-xs sm:text-sm font-medium truncate">{candidate.name}</span>
+                                            <span className="text-xs text-gray-500 hidden sm:inline">({candidate.party})</span>
                                           </div>
-                                          <span className="font-medium">{candidate.votes.toLocaleString()}</span>
+                                          <span className="font-medium text-sm ml-2 flex-shrink-0">{candidate.votes.toLocaleString()}</span>
                                         </div>
                                       ))}
                                       {remainingCount > 0 && (
@@ -207,31 +207,31 @@ export default function VerificationInterface() {
                             </div>
                             <div className="border-t pt-2 mt-2">
                               <p className="text-xs text-gray-500" data-testid={`verification-submitter-${result.id}`}>
-                                Submitted by {result.submitter?.firstName} {result.submitter?.lastName} • {formatDistanceToNow(new Date(result.createdAt), { addSuffix: true })}
+                                Submitted by {result.submitter?.firstName} {result.submitter?.lastName} • <span className="hidden sm:inline">{formatDistanceToNow(new Date(result.createdAt), { addSuffix: true })}</span><span className="sm:hidden">{formatDistanceToNow(new Date(result.createdAt), { addSuffix: true }).replace(' ago', '')}</span>
                               </p>
                             </div>
                           </div>
                         </div>
                         <div>
-                          <p className="text-gray-600 mb-1">Vote Summary:</p>
+                          <p className="text-gray-600 mb-2 font-medium">Vote Summary:</p>
                           <div className="bg-blue-50 p-3 rounded border border-blue-200">
                             <div className="space-y-2">
                               <div className="flex justify-between">
-                                <span className="text-sm text-gray-600">Valid Votes:</span>
-                                <span className="font-medium" data-testid={`verification-total-${result.id}`}>
+                                <span className="text-xs sm:text-sm text-gray-600">Valid Votes:</span>
+                                <span className="font-medium text-sm" data-testid={`verification-total-${result.id}`}>
                                   {result.totalVotes - (result.invalidVotes || 0)}
                                 </span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-sm text-gray-600">Invalid Votes:</span>
-                                <span className="font-medium" data-testid={`verification-invalid-${result.id}`}>
+                                <span className="text-xs sm:text-sm text-gray-600">Invalid Votes:</span>
+                                <span className="font-medium text-sm" data-testid={`verification-invalid-${result.id}`}>
                                   {result.invalidVotes || 0}
                                 </span>
                               </div>
                               <div className="border-t pt-2">
                                 <div className="flex justify-between">
-                                  <span className="font-medium text-gray-800">Total Votes:</span>
-                                  <span className="font-bold text-lg text-blue-600">
+                                  <span className="font-medium text-sm text-gray-800">Total Votes:</span>
+                                  <span className="font-bold text-base sm:text-lg text-blue-600">
                                     {result.totalVotes || 0}
                                   </span>
                                 </div>
@@ -241,49 +241,51 @@ export default function VerificationInterface() {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2">
-                        <div className="flex items-center space-x-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-sm text-green-700">Data Complete</span>
+                          <span className="text-xs sm:text-sm text-green-700">Data Complete</span>
                         </div>
                         {result.files && result.files.length > 0 && (
-                          <div className="flex items-center space-x-1">
+                          <div className="flex items-center gap-1">
                             <Image className="h-4 w-4 text-blue-500" />
-                            <span className="text-sm text-blue-700">
-                              {result.files.length} Photo{result.files.length !== 1 ? 's' : ''} Attached
+                            <span className="text-xs sm:text-sm text-blue-700">
+                              {result.files.length} Photo{result.files.length !== 1 ? 's' : ''}
                             </span>
                           </div>
                         )}
-                        <Badge variant="outline" data-testid={`verification-channel-${result.id}`}>
+                        <Badge variant="outline" className="text-xs" data-testid={`verification-channel-${result.id}`}>
                           {result.submissionChannel}
                         </Badge>
                       </div>
 
                       {result.comments && (
-                        <div className="mt-2 text-sm text-gray-600" data-testid={`verification-comments-${result.id}`}>
+                        <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded" data-testid={`verification-comments-${result.id}`}>
                           <strong>Comments:</strong> {result.comments}
                         </div>
                       )}
                     </div>
                     
-                    <div className="flex-shrink-0 ml-4">
-                      <div className="flex flex-col space-y-2">
+                    {/* Mobile-First Action Buttons */}
+                    <div className="border-t border-gray-100 pt-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <Button 
                           onClick={() => {
                             setSelectedResultId(result.id);
                             setShowDetailModal(true);
                           }}
                           variant="outline"
-                          className="text-blue-600 border-blue-200 hover:bg-blue-50 text-sm"
+                          className="w-full h-10 text-xs sm:text-sm text-blue-600 border-blue-200 hover:bg-blue-50"
                           data-testid={`button-view-details-${result.id}`}
                         >
                           <Eye className="h-4 w-4 mr-1" />
-                          View Details
+                          <span className="hidden sm:inline">View Details</span>
+                          <span className="sm:hidden">View</span>
                         </Button>
                         <Button 
                           onClick={() => handleApprove(result.id)}
                           disabled={updateStatusMutation.isPending}
-                          className="bg-green-500 hover:bg-green-600 text-white text-sm"
+                          className="w-full h-10 text-xs sm:text-sm bg-green-500 hover:bg-green-600 text-white"
                           data-testid={`button-approve-${result.id}`}
                         >
                           <Check className="h-4 w-4 mr-1" />
@@ -292,7 +294,7 @@ export default function VerificationInterface() {
                         <Button 
                           onClick={() => handleReject(result.id)}
                           disabled={updateStatusMutation.isPending}
-                          className="bg-red-500 hover:bg-red-600 text-white text-sm"
+                          className="w-full h-10 text-xs sm:text-sm bg-red-500 hover:bg-red-600 text-white"
                           data-testid={`button-reject-${result.id}`}
                         >
                           <X className="h-4 w-4 mr-1" />
@@ -301,7 +303,7 @@ export default function VerificationInterface() {
                         <Button 
                           onClick={() => handleFlag(result.id)}
                           disabled={updateStatusMutation.isPending}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm"
+                          className="w-full h-10 text-xs sm:text-sm bg-yellow-500 hover:bg-yellow-600 text-white"
                           data-testid={`button-flag-${result.id}`}
                         >
                           <FileText className="h-4 w-4 mr-1" />
@@ -314,22 +316,23 @@ export default function VerificationInterface() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              No results pending verification
+            <div className="text-center py-6 sm:py-8 text-gray-500">
+              <Eye className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-2 sm:mb-4" />
+              <p className="text-sm sm:text-base">No results pending verification</p>
             </div>
           )}
         </CardContent>
       </Card>
       
-      {/* Detailed Result Review Modal */}
+      {/* Mobile-First Detailed Result Review Modal */}
       <AlertDialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-        <AlertDialogContent className="max-w-4xl max-h-[90vh]">
+        <AlertDialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto m-2">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
+            <AlertDialogTitle className="flex items-center gap-2 text-base sm:text-lg">
               <FileText className="h-5 w-5 text-blue-600" />
               Detailed Result Review
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-sm sm:text-base">
               Review all submission details before making a decision on verification.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -346,22 +349,22 @@ export default function VerificationInterface() {
                 
                 return (
                   <div className="space-y-6">
-                    {/* Polling Center & Basic Info */}
-                    <div className="grid grid-cols-2 gap-6">
+                    {/* Mobile-First Polling Center & Basic Info */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div>
-                        <h4 className="font-semibold text-gray-800 mb-2">Polling Center</h4>
+                        <h4 className="font-semibold text-gray-800 mb-2 text-sm sm:text-base">Polling Center</h4>
                         <div className="bg-gray-50 p-3 rounded-lg">
-                          <p className="font-medium">{selectedResult.pollingCenter?.code} - {selectedResult.pollingCenter?.name}</p>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="font-medium text-sm sm:text-base">{selectedResult.pollingCenter?.code} - {selectedResult.pollingCenter?.name}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 mt-1">
                             {selectedResult.pollingCenter?.constituency}, {selectedResult.pollingCenter?.district}
                           </p>
                         </div>
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-800 mb-2">Election Details</h4>
+                        <h4 className="font-semibold text-gray-800 mb-2 text-sm sm:text-base">Election Details</h4>
                         <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                          <p className="font-medium text-blue-800">{categoryLabel}</p>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="font-medium text-blue-800 text-sm sm:text-base">{categoryLabel}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 mt-1">
                             Submitted via {selectedResult.submissionChannel}
                           </p>
                         </div>
