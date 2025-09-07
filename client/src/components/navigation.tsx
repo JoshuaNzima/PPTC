@@ -23,8 +23,8 @@ export default function Navigation() {
           </div>
           
           <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Language Selector - hidden on very small screens */}
-            <div className="hidden sm:block">
+            {/* Language Selector - always visible */}
+            <div>
               <LanguageSelector />
             </div>
             

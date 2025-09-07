@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Vote, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import LanguageSelector from "@/components/language-selector";
 
 interface LoginData {
   identifier: string;
@@ -128,7 +129,11 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center p-4 relative">
+      {/* Language Selector in top right corner */}
+      <div className="absolute top-4 right-4">
+        <LanguageSelector />
+      </div>
       <div className="max-w-md w-full">
         <Card className="shadow-2xl">
           <CardHeader className="text-center">

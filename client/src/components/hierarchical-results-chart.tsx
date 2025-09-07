@@ -85,7 +85,9 @@ export default function HierarchicalResultsChart() {
       if (selectedItem) params.append('parentId', selectedItem);
       return fetch(`/api/hierarchical-results?${params}`, { credentials: "include" }).then(res => res.json());
     },
-    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds instead of 5
+    staleTime: 10000, // Keep data fresh for 10 seconds
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
   });
 
   const chartData = hierarchicalData || [];
