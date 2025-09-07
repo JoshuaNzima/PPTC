@@ -513,17 +513,17 @@ export type InsertPoliticalParty = z.infer<typeof insertPoliticalPartySchema>;
 export type Candidate = typeof candidates.$inferSelect;
 export type InsertCandidate = z.infer<typeof insertCandidateSchema>;
 export type Result = typeof results.$inferSelect;
-export type InsertResult = z.infer<typeof insertResultSchema>;
+export type InsertResult = typeof results.$inferInsert;
 export type ResultFile = typeof resultFiles.$inferSelect;
-export type InsertResultFile = z.infer<typeof insertResultFileSchema>;
+export type InsertResultFile = typeof resultFiles.$inferInsert;
 export type AuditLog = typeof auditLogs.$inferSelect;
-export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
 export type UssdSession = typeof ussdSessions.$inferSelect;
 export type UssdProvider = typeof ussdProviders.$inferSelect;
 export type WhatsappProvider = typeof whatsappProviders.$inferSelect;
 export type SmsProvider = typeof smsProviders.$inferSelect;
 export type Complaint = typeof complaints.$inferSelect;
-export type InsertComplaint = z.infer<typeof insertComplaintSchema>;
+export type InsertComplaint = typeof complaints.$inferInsert;
 
 // Extended types with relations
 export type ResultWithRelations = Result & {
