@@ -313,12 +313,8 @@ export default function UserManagement() {
         return 'destructive';
       case 'supervisor':
         return 'default';
-      case 'reviewer':
+      case 'observer':
         return 'secondary';
-      case 'president':
-        return 'destructive';
-      case 'mp':
-        return 'default';
       case 'agent':
         return 'outline';
       default:
@@ -484,10 +480,8 @@ export default function UserManagement() {
                           <SelectContent>
                             <SelectItem value="agent">Agent</SelectItem>
                             <SelectItem value="supervisor">Supervisor</SelectItem>
-                            <SelectItem value="reviewer">Reviewer</SelectItem>
+                            <SelectItem value="observer">Observer</SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="president">President</SelectItem>
-                            <SelectItem value="mp">MP</SelectItem>
                           </SelectContent>
                         </Select>
 
