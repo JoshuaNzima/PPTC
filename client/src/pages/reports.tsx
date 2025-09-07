@@ -15,23 +15,23 @@ export default function Reports() {
 
   const { data: stats } = useQuery({
     queryKey: ["/api/stats"],
-  });
+  }) as { data?: any };
 
   const { data: results } = useQuery({
     queryKey: ["/api/results"],
-  });
+  }) as { data?: any[] };
 
   const { data: pollingCenters } = useQuery({
     queryKey: ["/api/polling-centers"],
-  });
+  }) as { data?: any[] };
 
   const { data: candidates } = useQuery({
     queryKey: ["/api/candidates"],
-  });
+  }) as { data?: any[] };
 
   const { data: users } = useQuery({
     queryKey: ["/api/users"],
-  });
+  }) as { data?: any[] };
 
   // Fetch party performance data for each category separately
   const { data: presidentialPerformance } = useQuery({
@@ -72,7 +72,7 @@ export default function Reports() {
 
   // Filter results based on selected filters
   const getFilteredResults = () => {
-    if (!results) return [];
+    if (!Array.isArray(results)) return [];
     
     let filtered = [...results];
     
@@ -90,7 +90,7 @@ export default function Reports() {
     return filtered;
   };
 
-  const formatVotesForExport = (votes: any, candidatesList: any[]) => {
+  const formatVotesForExport = (votes: any, candidatesList: any[] | undefined) => {
     if (!votes || typeof votes !== 'object') return "No votes";
     
     const voteEntries = Object.entries(votes);
@@ -103,7 +103,7 @@ export default function Reports() {
     }).join("; ");
   };
 
-  const getUserName = (userId: string, usersList: any[]) => {
+  const getUserName = (userId: string, usersList: any[] | undefined) => {
     if (!userId) return "N/A";
     const user = usersList?.find(u => u.id === userId);
     return user ? `${user.firstName} ${user.lastName}` : `User ID: ${userId}`;
@@ -122,13 +122,13 @@ export default function Reports() {
         r.pollingCenter?.name || "Unknown",
         r.status,
         formatVotesForExport(r.presidentialVotes, candidates),
-        formatVotesForExport(r.mpVotes, candidates),
-        formatVotesForExport(r.councilorVotes, candidates),
+        formatVotesForExport(r.mpVotes, candidates || []),
+        formatVotesForExport(r.councilorVotes, candidates || []),
         r.totalValidVotes || 0,
         r.invalidVotes || 0,
-        getUserName(r.submittedBy, users),
+        getUserName(r.submittedBy, users || []),
         format(new Date(r.createdAt), "yyyy-MM-dd HH:mm:ss"),
-        getUserName(r.verifiedBy, users),
+        getUserName(r.verifiedBy, users || []),
         r.verifiedAt ? format(new Date(r.verifiedAt), "yyyy-MM-dd HH:mm:ss") : "N/A"
       ]);
       
@@ -169,13 +169,13 @@ export default function Reports() {
       generatedAt: new Date(),
       period: selectedPeriod,
       status: selectedStatus,
-      totalCenters: pollingCenters?.length || 0,
-      totalResults: results?.length || 0,
-      verifiedResults: results?.filter((r: any) => r.status === 'verified').length || 0,
-      flaggedResults: results?.filter((r: any) => r.status === 'flagged').length || 0,
-      pendingResults: results?.filter((r: any) => r.status === 'pending').length || 0,
-      completionRate: stats?.completionRate || 0,
-      verificationRate: stats?.verificationRate || 0
+      totalCenters: Array.isArray(pollingCenters) ? pollingCenters.length : 0,
+      totalResults: Array.isArray(results) ? results.length : 0,
+      verifiedResults: Array.isArray(results) ? results.filter((r: any) => r.status === 'verified').length : 0,
+      flaggedResults: Array.isArray(results) ? results.filter((r: any) => r.status === 'flagged').length : 0,
+      pendingResults: Array.isArray(results) ? results.filter((r: any) => r.status === 'pending').length : 0,
+      completionRate: (stats && typeof stats.completionRate === 'number') ? stats.completionRate : 0,
+      verificationRate: (stats && typeof stats.verificationRate === 'number') ? stats.verificationRate : 0
     };
   };
 
@@ -274,7 +274,7 @@ export default function Reports() {
           </div>
           
           <div className="text-sm text-gray-600">
-            Showing {getFilteredResults().length} of {results?.length || 0} total results
+            Showing {getFilteredResults().length} of {Array.isArray(results) ? results.length : 0} total results
           </div>
         </CardContent>
       </Card>
@@ -298,10 +298,10 @@ export default function Reports() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold" data-testid="text-total-centers">
-                  {stats?.totalCenters || 0}
+                  {(stats && typeof stats.totalCenters === 'number') ? stats.totalCenters : 0}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {stats?.completionRate?.toFixed(1) || 0}% reporting
+                  {(stats && typeof stats.completionRate === 'number') ? stats.completionRate.toFixed(1) : 0}% reporting
                 </div>
               </CardContent>
             </Card>
@@ -313,7 +313,7 @@ export default function Reports() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold" data-testid="text-results-received">
-                  {stats?.resultsReceived || 0}
+                  {(stats && typeof stats.resultsReceived === 'number') ? stats.resultsReceived : 0}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   Total submissions
@@ -328,10 +328,10 @@ export default function Reports() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600" data-testid="text-verified-count">
-                  {stats?.verified || 0}
+                  {(stats && typeof stats.verified === 'number') ? stats.verified : 0}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {stats?.verificationRate?.toFixed(1) || 0}% verified
+                  {(stats && typeof stats.verificationRate === 'number') ? stats.verificationRate.toFixed(1) : 0}% verified
                 </div>
               </CardContent>
             </Card>
@@ -343,7 +343,7 @@ export default function Reports() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600" data-testid="text-flagged-count">
-                  {stats?.flagged || 0}
+                  {(stats && typeof stats.flagged === 'number') ? stats.flagged : 0}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   Needs review
