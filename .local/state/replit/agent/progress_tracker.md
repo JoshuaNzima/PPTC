@@ -58,3 +58,7 @@
 [x] 54. Add language selector to login/register pages - added to top-right corner
 [x] 55. Fix MEC results date/time input - improved validation and default values
 [x] 56. Complete migration with all user-requested fixes implemented
+[x] 57. Fix missing tsx runtime dependency and install required packages
+[x] 58. Create PostgreSQL database and apply migrations successfully  
+[x] 59. Restart workflow and verify application runs without errors on port 5000
+[x] 60. Complete final migration from Replit Agent to Replit environment
