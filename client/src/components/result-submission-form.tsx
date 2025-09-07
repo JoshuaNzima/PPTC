@@ -73,46 +73,58 @@ export default function ResultSubmissionForm() {
     mutationFn: async (data: FormData) => {
       const formData = new FormData();
 
-      // Extract candidate IDs and votes based on the current category
-      let candidateVotes: { candidateId: string; votes: number }[] = [];
-      if (data.category === "president" && data.presidentialVotes) {
-        candidateVotes = Object.entries(data.presidentialVotes).map(([candidateId, votes]) => ({ candidateId, votes: Number(votes) }));
-      } else if (data.category === "mp" && data.mpVotes) {
-        candidateVotes = Object.entries(data.mpVotes).map(([candidateId, votes]) => ({ candidateId, votes: Number(votes) }));
-      } else if (data.category === "councilor" && data.councilorVotes) {
-        candidateVotes = Object.entries(data.councilorVotes).map(([candidateId, votes]) => ({ candidateId, votes: Number(votes) }));
-      }
-
-      // Append form data
+      // Append basic form data
       formData.append("pollingCenterId", data.pollingCenterId);
       formData.append("category", data.category);
       formData.append("invalidVotes", data.invalidVotes.toString());
 
-      // Format candidate votes based on category
-      if (data.category === "president") {
-        const presidentialVotes = candidateVotes.reduce((acc, vote) => {
-          acc[vote.candidateId] = vote.votes;
-          return acc;
-        }, {} as Record<string, number>);
+      // Process and append vote data based on category
+      if (data.category === "president" && data.presidentialVotes) {
+        // Filter out empty votes and convert to numbers
+        const presidentialVotes = Object.entries(data.presidentialVotes)
+          .filter(([_, votes]) => votes && Number(votes) > 0)
+          .reduce((acc, [candidateId, votes]) => {
+            acc[candidateId] = Number(votes);
+            return acc;
+          }, {} as Record<string, number>);
+        
         formData.append("presidentialVotes", JSON.stringify(presidentialVotes));
-        formData.append("mpVotes", JSON.stringify(null));
-        formData.append("councilorVotes", JSON.stringify(null));
-      } else if (data.category === "mp") {
-        const mpVotes = candidateVotes.reduce((acc, vote) => {
-          acc[vote.candidateId] = vote.votes;
-          return acc;
-        }, {} as Record<string, number>);
-        formData.append("presidentialVotes", JSON.stringify(null));
+        formData.append("mpVotes", JSON.stringify({}));
+        formData.append("councilorVotes", JSON.stringify({}));
+      } else if (data.category === "mp" && data.mpVotes) {
+        // Filter out empty votes and convert to numbers
+        const mpVotes = Object.entries(data.mpVotes)
+          .filter(([_, votes]) => votes && Number(votes) > 0)
+          .reduce((acc, [candidateId, votes]) => {
+            acc[candidateId] = Number(votes);
+            return acc;
+          }, {} as Record<string, number>);
+        
+        formData.append("presidentialVotes", JSON.stringify({}));
         formData.append("mpVotes", JSON.stringify(mpVotes));
-        formData.append("councilorVotes", JSON.stringify(null));
-      } else if (data.category === "councilor") {
-        const councilorVotes = candidateVotes.reduce((acc, vote) => {
-          acc[vote.candidateId] = vote.votes;
-          return acc;
-        }, {} as Record<string, number>);
-        formData.append("presidentialVotes", JSON.stringify(null));
-        formData.append("mpVotes", JSON.stringify(null));
+        formData.append("councilorVotes", JSON.stringify({}));
+      } else if (data.category === "councilor" && data.councilorVotes) {
+        // Filter out empty votes and convert to numbers
+        const councilorVotes = Object.entries(data.councilorVotes)
+          .filter(([_, votes]) => votes && Number(votes) > 0)
+          .reduce((acc, [candidateId, votes]) => {
+            acc[candidateId] = Number(votes);
+            return acc;
+          }, {} as Record<string, number>);
+        
+        formData.append("presidentialVotes", JSON.stringify({}));
+        formData.append("mpVotes", JSON.stringify({}));
         formData.append("councilorVotes", JSON.stringify(councilorVotes));
+      } else {
+        // Default empty vote objects
+        formData.append("presidentialVotes", JSON.stringify({}));
+        formData.append("mpVotes", JSON.stringify({}));
+        formData.append("councilorVotes", JSON.stringify({}));
+      }
+
+      // Add comments if provided
+      if (data.comments) {
+        formData.append("comments", data.comments);
       }
 
 

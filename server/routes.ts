@@ -1172,11 +1172,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Received result submission:", req.body);
 
       // Parse the vote data properly
+      const presidentialVotes = req.body.presidentialVotes ? JSON.parse(req.body.presidentialVotes) : {};
+      const mpVotes = req.body.mpVotes ? JSON.parse(req.body.mpVotes) : {};
+      const councilorVotes = req.body.councilorVotes ? JSON.parse(req.body.councilorVotes) : {};
+
       const parsedData = {
         ...req.body,
-        presidentialVotes: req.body.presidentialVotes ? JSON.parse(req.body.presidentialVotes) : null,
-        mpVotes: req.body.mpVotes ? JSON.parse(req.body.mpVotes) : null,
-        councilorVotes: req.body.councilorVotes ? JSON.parse(req.body.councilorVotes) : null,
+        presidentialVotes: Object.keys(presidentialVotes).length > 0 ? presidentialVotes : null,
+        mpVotes: Object.keys(mpVotes).length > 0 ? mpVotes : null,
+        councilorVotes: Object.keys(councilorVotes).length > 0 ? councilorVotes : null,
         invalidVotes: parseInt(req.body.invalidVotes) || 0,
         submittedBy: req.user.id,
         submissionChannel: 'portal',
@@ -1185,19 +1189,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate total votes from all categories
       let totalVotes = parsedData.invalidVotes;
       
-      if (parsedData.presidentialVotes) {
+      if (parsedData.presidentialVotes && typeof parsedData.presidentialVotes === 'object') {
         Object.values(parsedData.presidentialVotes).forEach((votes: any) => {
           totalVotes += parseInt(votes) || 0;
         });
       }
       
-      if (parsedData.mpVotes) {
+      if (parsedData.mpVotes && typeof parsedData.mpVotes === 'object') {
         Object.values(parsedData.mpVotes).forEach((votes: any) => {
           totalVotes += parseInt(votes) || 0;
         });
       }
       
-      if (parsedData.councilorVotes) {
+      if (parsedData.councilorVotes && typeof parsedData.councilorVotes === 'object') {
         Object.values(parsedData.councilorVotes).forEach((votes: any) => {
           totalVotes += parseInt(votes) || 0;
         });
