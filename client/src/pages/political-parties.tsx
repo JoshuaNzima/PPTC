@@ -376,21 +376,22 @@ export function PoliticalPartiesPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Political Parties</h1>
-          <p className="text-muted-foreground">
-            Manage political parties for election consistency
-          </p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-add-party">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Party
-            </Button>
-          </DialogTrigger>
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Political Parties</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Manage political parties for election consistency
+            </p>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm" data-testid="button-add-party">
+                <Plus className="h-5 w-5 sm:h-4 sm:w-4 mr-2" />
+                Add Party
+              </Button>
+            </DialogTrigger>
           <DialogContent data-testid="dialog-add-party">
             <DialogHeader>
               <DialogTitle>{editingParty ? "Edit Political Party" : "Add Political Party"}</DialogTitle>
@@ -551,39 +552,40 @@ export function PoliticalPartiesPage() {
             </Form>
           </DialogContent>
         </Dialog>
-        <div className="flex items-center space-x-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button
             variant={viewMode === 'card' ? 'default' : 'outline'}
-            size="sm"
+            className="flex-1 sm:flex-initial h-10 text-sm"
             onClick={() => setViewMode('card')}
             data-testid="button-card-view"
           >
-            <Grid className="h-4 w-4 mr-1" />
-            Cards
+            <Grid className="h-4 w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Cards</span>
+            <span className="sm:hidden">Grid</span>
           </Button>
           <Button
             variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="sm"
+            className="flex-1 sm:flex-initial h-10 text-sm"
             onClick={() => setViewMode('list')}
             data-testid="button-list-view"
           >
-            <List className="h-4 w-4 mr-1" />
+            <List className="h-4 w-4 mr-1 sm:mr-2" />
             List
           </Button>
         </div>
       </div>
 
       {viewMode === 'card' ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {paginatedParties.map((party: PoliticalParty) => (
-          <Card key={party.id} data-testid={`card-party-${party.id}`}>
-            <CardHeader className="space-y-0 pb-2">
-              <CardTitle className="flex items-center justify-between">
-                <span className="truncate">{party.name}</span>
+          <Card key={party.id} className="touch-none" data-testid={`card-party-${party.id}`}>
+            <CardHeader className="space-y-0 pb-3 p-4 sm:p-6">
+              <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <span className="truncate text-base sm:text-lg pr-2">{party.name}</span>
                 {party.abbreviation && (
                   <Badge
                     style={{ backgroundColor: party.color || "#6B7280" }}
-                    className="text-white"
+                    className="text-white w-fit text-xs"
                     data-testid={`badge-abbreviation-${party.id}`}
                   >
                     {party.abbreviation}
@@ -591,137 +593,142 @@ export function PoliticalPartiesPage() {
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0">
               {party.description && (
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2">
                   {party.description}
                 </p>
               )}
-              {/* Party Logo */}
-              <div className="flex items-center gap-3 mb-3">
+              {/* Mobile-First Party Logo */}
+              <div className="flex items-center gap-2 sm:gap-3 mb-3">
                 {(party as any).logoUrl ? (
                   <img 
                     src={(party as any).logoUrl} 
                     alt={`${party.name} logo`}
-                    className="w-10 h-10 object-contain rounded border"
+                    className="w-8 h-8 sm:w-10 sm:h-10 object-contain rounded border flex-shrink-0"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/api/placeholder/40/40';
                     }}
                   />
                 ) : (
-                  <div className="w-10 h-10 bg-gray-100 rounded border flex items-center justify-center">
-                    <Image className="h-5 w-5 text-gray-400" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded border flex items-center justify-center flex-shrink-0">
+                    <Image className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                   </div>
                 )}
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium truncate">
                       {getCandidateCount(party.id, party.name)} candidate{getCandidateCount(party.id, party.name) !== 1 ? 's' : ''}
                     </span>
                   </div>
                   <div className="flex items-center gap-1 text-xs">
                     <div
-                      className="w-3 h-3 rounded-full"
+                      className="w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
                       style={{ backgroundColor: party.color || '#6B7280' }}
                     />
-                    <span className={party.isActive ? "text-green-600" : "text-red-600"}>
+                    <span className={`truncate ${party.isActive ? "text-green-600" : "text-red-600"}`}>
                       {party.isActive ? "Active" : "Inactive"}
                     </span>
                   </div>
                 </div>
               </div>
               
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedParty(party);
-                    setCandidatesModalOpen(true);
-                  }}
-                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                  data-testid={`button-view-details-${party.id}`}
-                >
-                  <Eye className="h-3 w-3 mr-1" />
-                  View Details
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit(party)}
-                  data-testid={`button-edit-${party.id}`}
-                >
-                  <Edit className="h-3 w-3 mr-1" />
-                  Edit
-                </Button>
-                
-                {party.isActive ? (
+              {/* Mobile-First Action Buttons */}
+              <div className="border-t border-gray-100 pt-3 -mx-4 sm:-mx-6 px-4 sm:px-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <Button
                     variant="outline"
-                    size="sm"
-                    onClick={() => handleDeactivate(party)}
-                    disabled={deactivatePartyMutation.isPending}
-                    data-testid={`button-deactivate-${party.id}`}
+                    className="w-full h-9 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() => {
+                      setSelectedParty(party);
+                      setCandidatesModalOpen(true);
+                    }}
+                    data-testid={`button-view-details-${party.id}`}
                   >
-                    <ToggleLeft className="h-3 w-3 mr-1" />
-                    Disable
+                    <Eye className="h-3 w-3 mr-1" />
+                    <span className="hidden sm:inline">View Details</span>
+                    <span className="sm:hidden">View</span>
                   </Button>
-                ) : (
                   <Button
                     variant="outline"
-                    size="sm"
-                    onClick={() => handleReactivate(party)}
-                    disabled={reactivatePartyMutation.isPending}
-                    data-testid={`button-reactivate-${party.id}`}
+                    className="w-full h-9 text-xs"
+                    onClick={() => handleEdit(party)}
+                    data-testid={`button-edit-${party.id}`}
                   >
-                    <ToggleRight className="h-3 w-3 mr-1" />
-                    Enable
+                    <Edit className="h-3 w-3 mr-1" />
+                    Edit
                   </Button>
-                )}
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDelete(party)}
-                  disabled={deletePartyMutation.isPending}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                  data-testid={`button-delete-${party.id}`}
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Delete
-                </Button>
+                  
+                  {party.isActive ? (
+                    <Button
+                      variant="outline"
+                      className="w-full h-9 text-xs text-orange-600 border-orange-200 hover:bg-orange-50"
+                      onClick={() => handleDeactivate(party)}
+                      disabled={deactivatePartyMutation.isPending}
+                      data-testid={`button-deactivate-${party.id}`}
+                    >
+                      <ToggleLeft className="h-3 w-3 mr-1" />
+                      <span className="hidden sm:inline">Disable</span>
+                      <span className="sm:hidden">Off</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="w-full h-9 text-xs text-green-600 border-green-200 hover:bg-green-50"
+                      onClick={() => handleReactivate(party)}
+                      disabled={reactivatePartyMutation.isPending}
+                      data-testid={`button-reactivate-${party.id}`}
+                    >
+                      <ToggleRight className="h-3 w-3 mr-1" />
+                      <span className="hidden sm:inline">Enable</span>
+                      <span className="sm:hidden">On</span>
+                    </Button>
+                  )}
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                    onClick={() => handleDelete(party)}
+                    disabled={deletePartyMutation.isPending}
+                    data-testid={`button-delete-${party.id}`}
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    <span className="hidden sm:inline">Delete</span>
+                    <span className="sm:hidden">Del</span>
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
           ))}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {paginatedParties.map((party: PoliticalParty) => (
-            <Card key={party.id} className="p-4" data-testid={`row-party-${party.id}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
+            <Card key={party.id} className="p-3 sm:p-4" data-testid={`row-party-${party.id}`}>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
                   <div
-                    className="w-4 h-4 rounded-full border"
+                    className="w-4 h-4 rounded-full border flex-shrink-0"
                     style={{ backgroundColor: party.color || '#6B7280' }}
                   />
-                  <div>
-                    <div className="font-medium">{party.name}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm sm:text-base truncate">{party.name}</div>
                     {party.abbreviation && (
-                      <div className="text-sm text-muted-foreground">{party.abbreviation}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground">{party.abbreviation}</div>
                     )}
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-xs sm:text-sm text-muted-foreground flex-shrink-0">
                     {getCandidateCount(party.id, party.name)} candidates
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  {/* Action buttons - same as card view */}
+                
+                {/* Mobile List Action Buttons */}
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    size="sm"
+                    className="flex-1 h-8 text-xs"
                     onClick={() => {
                       setEditingParty(party);
                       form.reset({
@@ -735,35 +742,40 @@ export function PoliticalPartiesPage() {
                     }}
                     data-testid={`button-edit-list-${party.id}`}
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-3 w-3 mr-1" />
+                    Edit
                   </Button>
                   <Button
                     variant={party.isActive ? "destructive" : "default"}
-                    size="sm"
+                    className="flex-1 h-8 text-xs"
                     onClick={() => party.isActive ? handleDeactivate(party) : handleReactivate(party)}
                     disabled={party.isActive ? deactivatePartyMutation.isPending : reactivatePartyMutation.isPending}
                     data-testid={`button-toggle-list-${party.id}`}
                   >
                     {party.isActive ? (
                       <>
-                        <ToggleLeft className="h-4 w-4" />
-                        Disable
+                        <ToggleLeft className="h-3 w-3 mr-1" />
+                        <span className="hidden sm:inline">Disable</span>
+                        <span className="sm:hidden">Off</span>
                       </>
                     ) : (
                       <>
-                        <ToggleRight className="h-4 w-4" />
-                        Enable
+                        <ToggleRight className="h-3 w-3 mr-1" />
+                        <span className="hidden sm:inline">Enable</span>
+                        <span className="sm:hidden">On</span>
                       </>
                     )}
                   </Button>
                   <Button
                     variant="outline"
-                    size="sm"
+                    className="flex-1 h-8 text-xs text-red-600 border-red-200 hover:bg-red-50"
                     onClick={() => deletePartyMutation.mutate(party.id)}
                     disabled={deletePartyMutation.isPending}
                     data-testid={`button-delete-list-${party.id}`}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    <span className="hidden sm:inline">Delete</span>
+                    <span className="sm:hidden">Del</span>
                   </Button>
                 </div>
               </div>
@@ -772,31 +784,33 @@ export function PoliticalPartiesPage() {
         </div>
       )}
 
-      {/* Pagination Controls */}
+      {/* Mobile-First Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center space-x-2 mt-6">
+        <div className="flex items-center justify-center gap-2 sm:gap-3 mt-6">
           <Button
             variant="outline"
-            size="sm"
+            className="h-10 px-3 sm:px-4 text-sm"
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
             data-testid="button-prev-page"
           >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Previous</span>
+            <span className="sm:hidden">Prev</span>
           </Button>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs sm:text-sm text-muted-foreground px-2">
             Page {currentPage} of {totalPages}
           </span>
           <Button
             variant="outline"
-            size="sm"
+            className="h-10 px-3 sm:px-4 text-sm"
             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
             disabled={currentPage === totalPages}
             data-testid="button-next-page"
           >
-            Next
-            <ChevronRight className="h-4 w-4" />
+            <span className="hidden sm:inline">Next</span>
+            <span className="sm:hidden">Next</span>
+            <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
       )}
