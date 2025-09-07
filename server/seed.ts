@@ -172,35 +172,37 @@ export async function seedDatabase() {
     const existingCenters = await storage.getPollingCenters();
     
     if (existingCenters.data.length === 0) {
-      // Create sample polling centers
-      await storage.createPollingCenter({
-        code: "PC001",
-        name: "Lilongwe Primary School",
-        constituency: "Lilongwe City Centre",
-        district: "Lilongwe",
-        state: "Central Region",
-        registeredVoters: 1250,
-      });
-
-      await storage.createPollingCenter({
-        code: "PC002", 
-        name: "Blantyre Community Hall",
-        constituency: "Blantyre City South",
-        district: "Blantyre",
-        state: "Southern Region",
-        registeredVoters: 980,
-      });
-
-      await storage.createPollingCenter({
-        code: "PC003",
-        name: "Mzuzu Secondary School",
-        constituency: "Mzuzu City",
-        district: "Mzuzu",
-        state: "Northern Region",
-        registeredVoters: 1450,
-      });
-
-      console.log("✓ Created sample polling centers");
+      // Load real polling center data from Excel
+      const fs = await import("fs");
+      const path = await import("path");
+      
+      try {
+        const dataPath = path.join(process.cwd(), "polling_centers_unique.json");
+        if (fs.existsSync(dataPath)) {
+          const pollingData = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
+          
+          for (const center of pollingData) {
+            // Extract district from constituency (before the dash)
+            const constituencyParts = center.constituency.split(" - ");
+            const district = constituencyParts[1] || "Unknown District";
+            
+            await storage.createPollingCenter({
+              code: center.serial,
+              name: center.centre.split(" - ")[1] || center.centre,
+              constituency: district,
+              district: district,
+              state: "Region", // Default region
+              registeredVoters: center.voters || 0,
+            });
+          }
+          
+          console.log(`✓ Created ${pollingData.length} real polling centers from Excel data`);
+        } else {
+          console.log("⚠️ Real polling center data not found, skipping creation");
+        }
+      } catch (error) {
+        console.error("Error loading polling center data:", error);
+      }
     } else {
       console.log("✓ Polling centers already exist");
     }

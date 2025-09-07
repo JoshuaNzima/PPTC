@@ -4,6 +4,7 @@ import { Vote } from "lucide-react";
 import { User } from "@shared/schema";
 import LanguageSelector from "@/components/language-selector";
 import { useLanguage } from "@/contexts/language-context";
+import logoUrl from "@/assets/logo.jpg";
 
 export default function Navigation() {
   const { user } = useAuth() as { user: User | null };
@@ -14,8 +15,8 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center ml-12 lg:ml-0">
-            <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center mr-3">
-              <Vote className="text-white h-4 w-4" />
+            <div className="w-8 h-8 rounded-full flex items-center justify-center mr-3 overflow-hidden">
+              <img src={logoUrl} alt="PP Logo" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-lg sm:text-xl font-semibold text-gray-900" data-testid="text-app-title">
               PTC System
