@@ -406,7 +406,7 @@ export function PoliticalPartiesPage() {
                 Add Party
               </Button>
             </DialogTrigger>
-          <DialogContent data-testid="dialog-add-party">
+            <DialogContent data-testid="dialog-add-party">
             <DialogHeader>
               <DialogTitle>{editingParty ? "Edit Political Party" : "Add Political Party"}</DialogTitle>
               <DialogDescription>

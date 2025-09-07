@@ -49,6 +49,12 @@ export const complaintCategoryEnum = pgEnum('complaint_category', ['voting_irreg
 // Result source enum - to differentiate between internal vs MEC results
 export const resultSourceEnum = pgEnum('result_source', ['internal', 'mec']);
 
+// Notification type enum
+export const notificationTypeEnum = pgEnum('notification_type', ['info', 'success', 'warning', 'error']);
+
+// Notification category enum  
+export const notificationCategoryEnum = pgEnum('notification_category', ['result_submission', 'complaint', 'verification', 'system', 'user_action']);
+
 // User storage table.
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -496,6 +502,21 @@ export const smsProviders = pgTable("sms_providers", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Notifications table
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  message: text("message").notNull(),
+  type: notificationTypeEnum("type").notNull(),
+  category: notificationCategoryEnum("category").notNull(),
+  userId: varchar("user_id").notNull(),
+  isRead: boolean("is_read").default(false).notNull(),
+  relatedId: varchar("related_id"), // Optional ID of related entity (result, complaint, etc.)
+  actionUrl: varchar("action_url"), // Optional URL for action
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
@@ -524,6 +545,8 @@ export type WhatsappProvider = typeof whatsappProviders.$inferSelect;
 export type SmsProvider = typeof smsProviders.$inferSelect;
 export type Complaint = typeof complaints.$inferSelect;
 export type InsertComplaint = typeof complaints.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
 
 // Extended types with relations
 export type ResultWithRelations = Result & {
