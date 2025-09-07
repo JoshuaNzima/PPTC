@@ -21,7 +21,7 @@ const profileSchema = z.object({
   phone: z.string().min(1, "Phone number is required").optional(),
 });
 
-const passwordSchema = z.object({
+const passwordChangeSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
   newPassword: z.string().min(8, "Password must be at least 8 characters"),
   confirmPassword: z.string().min(1, "Please confirm your password"),
@@ -35,7 +35,7 @@ const verificationSchema = z.object({
 });
 
 type ProfileData = z.infer<typeof profileSchema>;
-type PasswordData = z.infer<typeof passwordSchema>;
+type PasswordData = z.infer<typeof passwordChangeSchema>;
 type VerificationData = z.infer<typeof verificationSchema>;
 
 export default function Profile() {
@@ -59,7 +59,7 @@ export default function Profile() {
   });
 
   const passwordForm = useForm<PasswordData>({
-    resolver: zodResolver(passwordSchema),
+    resolver: zodResolver(passwordChangeSchema),
     defaultValues: {
       currentPassword: "",
       newPassword: "",
