@@ -35,17 +35,31 @@ import { insertPoliticalPartySchema, insertCandidateSchema } from "@shared/schem
 import type { PoliticalParty, Candidate } from "@shared/schema";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  nameSchema, 
+  abbreviationSchema, 
+  colorSchema, 
+  descriptionSchema, 
+  urlSchema 
+} from "@shared/validation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const formSchema = insertPoliticalPartySchema.extend({
-  color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, {
-    message: "Please enter a valid hex color code",
-  }).optional(),
-  logoUrl: z.string().optional(),
+const formSchema = z.object({
+  name: nameSchema,
+  abbreviation: abbreviationSchema,
+  color: colorSchema.optional(),
+  description: descriptionSchema.optional().or(z.literal("")),
+  logoUrl: urlSchema.or(z.literal("")),
 });
 
-const candidateFormSchema = insertCandidateSchema.extend({
-  abbreviation: z.string().optional(),
+const candidateFormSchema = z.object({
+  name: nameSchema,
+  abbreviation: abbreviationSchema,
+  partyId: z.string().min(1, "Party is required"),
+  party: z.string().min(1, "Party name is required"),
+  category: z.enum(["president", "mp", "councilor"]),
+  constituency: z.string().optional().or(z.literal("")),
+  isActive: z.boolean().default(true),
 });
 
 export function PoliticalPartiesPage() {

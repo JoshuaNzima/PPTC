@@ -15,23 +15,30 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
+import { 
+  nameSchema, 
+  optionalEmailSchema, 
+  optionalPhoneSchema, 
+  passwordSchema,
+  contactRequiredSchema 
+} from "@shared/validation";
 import { useState } from "react";
 
 // Edit user form schema
 const editUserSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
-  phone: z.string().optional(),
+  firstName: nameSchema,
+  lastName: nameSchema,
+  email: optionalEmailSchema.or(z.literal("")),
+  phone: optionalPhoneSchema,
 });
 
 // Create user form schema
 const createUserSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
-  phone: z.string().min(1, "Phone number is required").optional(),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: nameSchema,
+  lastName: nameSchema,
+  email: optionalEmailSchema.or(z.literal("")),
+  phone: optionalPhoneSchema,
+  password: passwordSchema,
   role: z.enum(["agent", "supervisor", "admin", "observer"]).default("agent"),
 }).refine((data) => data.email || data.phone, {
   message: "Either email or phone number is required",

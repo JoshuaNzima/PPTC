@@ -3,6 +3,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { 
+  titleSchema,
+  descriptionSchema,
+  optionalPhoneSchema,
+  optionalEmailSchema 
+} from "@shared/validation";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -36,20 +42,16 @@ import {
 } from "lucide-react";
 
 const formSchema = z.object({
-  title: z.string().min(10, "Title must be at least 10 characters"),
-  description: z.string().min(50, "Description must be at least 50 characters"),
+  title: titleSchema.min(10, "Title must be at least 10 characters").max(200, "Title must not exceed 200 characters"),
+  description: descriptionSchema.min(50, "Description must be at least 50 characters").max(2000, "Description must not exceed 2000 characters"),
   category: z.enum(["voting_irregularity", "result_dispute", "procedural_violation", "fraud_allegation", "technical_issue", "other"]),
   priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
   pollingCenterId: z.string().optional().transform(val => val === "" ? undefined : val),
   constituencyId: z.string().optional().transform(val => val === "" ? undefined : val),
   wardId: z.string().optional().transform(val => val === "" ? undefined : val),
   resultId: z.string().optional().transform(val => val === "" ? undefined : val),
-  contactPhone: z.string().optional().refine(val => !val || val.length >= 10, {
-    message: "Phone number must be at least 10 characters"
-  }),
-  contactEmail: z.string().optional().refine(val => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
-    message: "Invalid email format"
-  }),
+  contactPhone: optionalPhoneSchema,
+  contactEmail: optionalEmailSchema,
 });
 
 type FormData = z.infer<typeof formSchema>;

@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
+import { voteCountSchema, descriptionSchema } from "@shared/validation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,11 +24,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 const formSchema = z.object({
   pollingCenterId: z.string().min(1, "Polling center is required"),
   category: z.enum(["president", "mp", "councilor"]),
-  presidentialVotes: z.record(z.coerce.number().min(0)).optional(),
-  mpVotes: z.record(z.coerce.number().min(0)).optional(),
-  councilorVotes: z.record(z.coerce.number().min(0)).optional(),
-  invalidVotes: z.coerce.number().min(0, "Invalid votes must be non-negative"),
-  comments: z.string().optional().transform(val => val === "" ? undefined : val),
+  presidentialVotes: z.record(voteCountSchema).optional(),
+  mpVotes: z.record(voteCountSchema).optional(),
+  councilorVotes: z.record(voteCountSchema).optional(),
+  invalidVotes: voteCountSchema,
+  comments: z.string().optional()
+    .refine(val => !val || val.length <= 1000, {
+      message: "Comments must not exceed 1000 characters"
+    })
+    .transform(val => val === "" ? undefined : val),
 });
 
 type FormData = z.infer<typeof formSchema>;
