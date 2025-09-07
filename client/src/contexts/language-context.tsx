@@ -141,6 +141,28 @@ const translations = {
     "message.error_loading": "Error loading data",
     "message.success_submit": "Successfully submitted",
     "message.error_submit": "Error submitting data",
+
+    // Landing Page
+    "landing.title": "Parallel Tally Center",
+    "landing.subtitle": "Secure Election Management System", 
+    "landing.feature_security": "Secure result collection and verification",
+    "landing.feature_realtime": "Real-time dashboard and analytics",
+    "landing.feature_access": "Multi-role access control",
+    "landing.sign_in": "Sign In to Continue",
+    "landing.authorized_only": "Authorized personnel only. All activities are logged and monitored.",
+    "landing.monitoring_title": "Transparent Election Monitoring",
+    "landing.monitoring_description": "Collect, verify, and tally election results with confidence. Real-time data collection from field agents, comprehensive verification workflows, and secure audit trails ensure election integrity.",
+
+    // 404 Page
+    "error.page_not_found": "404 Page Not Found",
+    "error.page_not_found_description": "Did you forget to add the page to the router?",
+
+    // UI Components
+    "ui.close": "Close",
+    "ui.previous": "Previous", 
+    "ui.next": "Next",
+    "ui.more_pages": "More pages",
+    "ui.more": "More",
   },
   ny: {
     // Chichewa translations
@@ -266,6 +288,28 @@ const translations = {
     "message.error_loading": "Cholakwika pakukweza zidziwa",
     "message.success_submit": "Zatumizidwa bwino",
     "message.error_submit": "Cholakwika pakutumiza zidziwa",
+
+    // Landing Page
+    "landing.title": "Malo Owerengera Mozungulira",
+    "landing.subtitle": "Dongosolo Loteteza la Kasamalidwe ka Chisankho",
+    "landing.feature_security": "Kusonkhanitsa kotetezeka ndi kutsimikiza zotsatira",
+    "landing.feature_realtime": "Dashboodi ya nthawi yeniyeni ndi kusanthula",
+    "landing.feature_access": "Kuyang'anira maudindo osiyanasiyana",
+    "landing.sign_in": "Lowani kuti Mupitirize",
+    "landing.authorized_only": "Anthu ovomerezeka okha. Zochita zonse zimazolemba ndipo zimawunikidwa.",
+    "landing.monitoring_title": "Kuyang'anira Chisankho Mowonekeratu",
+    "landing.monitoring_description": "Sonkhanitsani, simbani, ndi werengani zotsatira za chisankho modzidalira. Kusonkhanitsa zidziwa nthawi yeniyeni kuchokera kwa otumidwa, njira zokwanira zowunika, ndi njira zoteteza zimatsimikizira chilungamo cha chisankho.",
+
+    // 404 Page
+    "error.page_not_found": "404 Tsamba Sinapezeke",
+    "error.page_not_found_description": "Kodi munayiwala kuwonjezera tsambali ku router?",
+
+    // UI Components
+    "ui.close": "Tseka",
+    "ui.previous": "Yakale",
+    "ui.next": "Yotsatira",
+    "ui.more_pages": "Masamba ochuluka",
+    "ui.more": "Zambiri",
   },
 };
 
