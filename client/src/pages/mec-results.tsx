@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,7 +43,11 @@ const mecResultSchema = z.object({
   totalVotes: z.number().min(0),
   invalidVotes: z.number().min(0),
   mecOfficialName: z.string().min(1, "MEC official name is required"),
-  dateReceived: z.string().min(1, "Date received is required"),
+  dateReceived: z.string().min(1, "Date received is required").refine((val) => {
+    // Ensure it's a valid datetime-local format
+    const date = new Date(val);
+    return !isNaN(date.getTime());
+  }, "Please enter a valid date and time"),
   notes: z.string().optional(),
 });
 
@@ -68,7 +72,7 @@ export default function MECResults() {
       totalVotes: 0,
       invalidVotes: 0,
       mecOfficialName: "",
-      dateReceived: "",
+      dateReceived: new Date().toISOString().slice(0, 16), // Default to current date/time
       notes: ""
     },
   });
@@ -346,10 +350,18 @@ export default function MECResults() {
                       name="dateReceived"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Date Received</FormLabel>
+                          <FormLabel>Date & Time Received</FormLabel>
                           <FormControl>
-                            <Input {...field} type="datetime-local" />
+                            <Input 
+                              {...field} 
+                              type="datetime-local" 
+                              className="w-full"
+                              max={new Date().toISOString().slice(0, 16)} // Prevent future dates
+                            />
                           </FormControl>
+                          <FormDescription>
+                            When did you receive these results from MEC?
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
