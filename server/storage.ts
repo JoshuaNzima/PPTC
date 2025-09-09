@@ -10,6 +10,7 @@ import {
   auditLogs,
   politicalParties,
   complaints,
+  notifications,
   ussdSessions,
   ussdProviders,
   whatsappProviders,
@@ -36,6 +37,8 @@ import {
   type AuditLog,
   type InsertAuditLog,
   type Complaint,
+  type Notification,
+  type InsertNotification,
   type UssdSession,
   type UssdProvider,
   type WhatsappProvider,
@@ -172,6 +175,14 @@ export interface IStorage {
     status: string;
     mecReferenceNumber: string;
   }): Promise<Complaint>;
+
+  // Notification operations
+  getUserNotifications(userId: string): Promise<Notification[]>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  markNotificationAsRead(notificationId: string, userId: string): Promise<boolean>;
+  markAllNotificationsAsRead(userId: string): Promise<number>;
+  deleteNotification(notificationId: string, userId: string): Promise<boolean>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
 
   // Admin database management operations
   deactivateUser(userId: string): Promise<User>;
@@ -1497,6 +1508,69 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return updatedComplaint;
+  }
+
+  // Notification operations
+  async getUserNotifications(userId: string): Promise<Notification[]> {
+    return await db.select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const result = await db.select({ count: count() })
+      .from(notifications)
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.isRead, false)
+      ));
+    return result[0]?.count || 0;
+  }
+
+  async markNotificationAsRead(notificationId: string, userId: string): Promise<boolean> {
+    const result = await db.update(notifications)
+      .set({ 
+        isRead: true, 
+        updatedAt: new Date() 
+      })
+      .where(and(
+        eq(notifications.id, notificationId),
+        eq(notifications.userId, userId)
+      ))
+      .returning();
+    return result.length > 0;
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<number> {
+    const result = await db.update(notifications)
+      .set({ 
+        isRead: true, 
+        updatedAt: new Date() 
+      })
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.isRead, false)
+      ))
+      .returning();
+    return result.length;
+  }
+
+  async deleteNotification(notificationId: string, userId: string): Promise<boolean> {
+    const result = await db.delete(notifications)
+      .where(and(
+        eq(notifications.id, notificationId),
+        eq(notifications.userId, userId)
+      ))
+      .returning();
+    return result.length > 0;
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [createdNotification] = await db.insert(notifications)
+      .values(notification)
+      .returning();
+    return createdNotification;
   }
 }
 

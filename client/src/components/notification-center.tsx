@@ -72,34 +72,17 @@ export function NotificationCenter() {
     refetchInterval: 10000, // Check unread count every 10 seconds
   });
 
-  // WebSocket for real-time notifications
-  const { socket } = useWebSocket();
+  // WebSocket for real-time notifications - remove socket reference for now
+  // const { socket } = useWebSocket();
 
   useEffect(() => {
-    if (socket) {
-      const handleNotification = (notification: Notification) => {
-        // Invalidate queries to refresh the notification list
-        queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
-        
-        // Show toast notification
-        toast({
-          title: notification.title,
-          description: notification.message,
-          variant: notification.type === "error" ? "destructive" : "default",
-        });
-      };
-
-      socket.on("notification", handleNotification);
-      return () => socket.off("notification", handleNotification);
-    }
-  }, [socket, toast]);
+    // TODO: Implement WebSocket notifications when available
+    // Real-time functionality will be added later
+  }, [toast]);
 
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      return apiRequest(`/api/notifications/${notificationId}/read`, {
-        method: "PUT",
-      });
+      return apiRequest("PUT", `/api/notifications/${notificationId}/read`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
@@ -109,9 +92,7 @@ export function NotificationCenter() {
 
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/notifications/mark-all-read", {
-        method: "PUT",
-      });
+      return apiRequest("PUT", "/api/notifications/mark-all-read", {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
@@ -125,9 +106,7 @@ export function NotificationCenter() {
 
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      return apiRequest(`/api/notifications/${notificationId}`, {
-        method: "DELETE",
-      });
+      return apiRequest("DELETE", `/api/notifications/${notificationId}`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
