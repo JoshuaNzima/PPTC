@@ -37,6 +37,7 @@ import {
   type AuditLog,
   type InsertAuditLog,
   type Complaint,
+  type InsertComplaint,
   type Notification,
   type InsertNotification,
   type UssdSession,
@@ -48,7 +49,7 @@ import {
   type CandidateCategory,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, count, sql } from "drizzle-orm";
+import { eq, desc, and, or, count, sql, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -565,6 +566,65 @@ export class DatabaseStorage implements IStorage {
       flaggedReason = `Total votes (${totalVotes}) exceed maximum possible for tripartite election (${maxTotalVotes} = ${pollingCenter.registeredVoters} registered voters × 3 categories)`;
     }
 
+    // Duplicate detection logic
+    const existingResults = await db
+      .select()
+      .from(results)
+      .where(eq(results.pollingCenterId, result.pollingCenterId))
+      .orderBy(desc(results.createdAt));
+
+    let isDuplicate = false;
+    let duplicateReason = '';
+    let duplicateGroupId = '';
+    let relatedResultIds: string[] = [];
+
+    if (existingResults.length > 0) {
+      // Check for same submitter submitting multiple results for same center
+      const sameSubmitterResults = existingResults.filter(r => r.submittedBy === result.submittedBy);
+      if (sameSubmitterResults.length > 0) {
+        isDuplicate = true;
+        duplicateReason = `Same submitter has already submitted ${sameSubmitterResults.length} result(s) for this polling center`;
+        duplicateGroupId = sameSubmitterResults[0].duplicateGroupId || `dup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        relatedResultIds = sameSubmitterResults.map(r => r.id);
+        status = 'flagged';
+        flaggedReason = duplicateReason;
+      }
+      
+      // Check for results with similar vote patterns (if not already flagged)
+      if (!isDuplicate) {
+        for (const existingResult of existingResults) {
+          const similarity = this.calculateVoteSimilarity(
+            { presidentialVotes: result.presidentialVotes, mpVotes: result.mpVotes, councilorVotes: result.councilorVotes },
+            { presidentialVotes: existingResult.presidentialVotes, mpVotes: existingResult.mpVotes, councilorVotes: existingResult.councilorVotes }
+          );
+          
+          // Flag as duplicate if similarity is > 95%
+          if (similarity > 0.95) {
+            isDuplicate = true;
+            duplicateReason = `Vote pattern is ${(similarity * 100).toFixed(1)}% similar to existing result (ID: ${existingResult.id})`;
+            duplicateGroupId = existingResult.duplicateGroupId || `dup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            relatedResultIds = [existingResult.id];
+            status = 'flagged';
+            flaggedReason = duplicateReason;
+            break;
+          }
+        }
+      }
+
+      // If this is flagged as duplicate, update related results to include this one
+      if (isDuplicate && relatedResultIds.length > 0) {
+        await db
+          .update(results)
+          .set({ 
+            isDuplicate: true,
+            duplicateGroupId,
+            relatedResultIds: [...relatedResultIds, 'PENDING_ID'], // Will update after insert
+            updatedAt: new Date()
+          })
+          .where(inArray(results.id, relatedResultIds));
+      }
+    }
+
     const [newResult] = await db
       .insert(results)
       .values({ 
@@ -573,10 +633,88 @@ export class DatabaseStorage implements IStorage {
         status,
         flaggedReason,
         documentMismatch: false,
-        documentMismatchReason: null
+        documentMismatchReason: null,
+        isDuplicate,
+        duplicateReason,
+        duplicateGroupId: isDuplicate ? duplicateGroupId : null,
+        relatedResultIds: isDuplicate ? relatedResultIds : null
       })
       .returning();
+
+    // Update related results to include the new result ID
+    if (isDuplicate && relatedResultIds.length > 0) {
+      await db
+        .update(results)
+        .set({ 
+          relatedResultIds: [...relatedResultIds, newResult.id],
+          updatedAt: new Date()
+        })
+        .where(inArray(results.id, relatedResultIds));
+
+      // Update the new result with correct related IDs
+      await db
+        .update(results)
+        .set({ 
+          relatedResultIds: relatedResultIds,
+          updatedAt: new Date()
+        })
+        .where(eq(results.id, newResult.id));
+    }
+
     return newResult;
+  }
+
+  // Helper method to calculate vote similarity between two results
+  private calculateVoteSimilarity(
+    result1: { presidentialVotes?: any; mpVotes?: any; councilorVotes?: any },
+    result2: { presidentialVotes?: any; mpVotes?: any; councilorVotes?: any }
+  ): number {
+    let totalMatches = 0;
+    let totalVotes = 0;
+
+    // Compare presidential votes
+    if (result1.presidentialVotes && result2.presidentialVotes) {
+      const votes1 = result1.presidentialVotes as Record<string, number>;
+      const votes2 = result2.presidentialVotes as Record<string, number>;
+      
+      const allCandidates = new Set([...Object.keys(votes1), ...Object.keys(votes2)]);
+      for (const candidate of allCandidates) {
+        const v1 = votes1[candidate] || 0;
+        const v2 = votes2[candidate] || 0;
+        totalMatches += Math.min(v1, v2);
+        totalVotes += Math.max(v1, v2);
+      }
+    }
+
+    // Compare MP votes
+    if (result1.mpVotes && result2.mpVotes) {
+      const votes1 = result1.mpVotes as Record<string, number>;
+      const votes2 = result2.mpVotes as Record<string, number>;
+      
+      const allCandidates = new Set([...Object.keys(votes1), ...Object.keys(votes2)]);
+      for (const candidate of allCandidates) {
+        const v1 = votes1[candidate] || 0;
+        const v2 = votes2[candidate] || 0;
+        totalMatches += Math.min(v1, v2);
+        totalVotes += Math.max(v1, v2);
+      }
+    }
+
+    // Compare councilor votes
+    if (result1.councilorVotes && result2.councilorVotes) {
+      const votes1 = result1.councilorVotes as Record<string, number>;
+      const votes2 = result2.councilorVotes as Record<string, number>;
+      
+      const allCandidates = new Set([...Object.keys(votes1), ...Object.keys(votes2)]);
+      for (const candidate of allCandidates) {
+        const v1 = votes1[candidate] || 0;
+        const v2 = votes2[candidate] || 0;
+        totalMatches += Math.min(v1, v2);
+        totalVotes += Math.max(v1, v2);
+      }
+    }
+
+    return totalVotes > 0 ? totalMatches / totalVotes : 0;
   }
 
   async updateResultStatus(

@@ -196,6 +196,13 @@ export const results = pgTable("results", {
   flaggedReason: text("flagged_reason"),
   documentMismatch: boolean("document_mismatch").default(false).notNull(),
   documentMismatchReason: text("document_mismatch_reason"),
+  
+  // Duplicate detection fields
+  isDuplicate: boolean("is_duplicate").default(false).notNull(),
+  duplicateGroupId: varchar("duplicate_group_id"), // Groups related duplicates together
+  duplicateReason: text("duplicate_reason"), // Why it was flagged as duplicate
+  relatedResultIds: text("related_result_ids").array(), // IDs of other duplicate results
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   verifiedAt: timestamp("verified_at"),
@@ -207,9 +214,12 @@ export const results = pgTable("results", {
   index("idx_results_submitted_by").on(table.submittedBy),
   index("idx_results_category").on(table.category),
   index("idx_results_source").on(table.source),
+  index("idx_results_is_duplicate").on(table.isDuplicate),
+  index("idx_results_duplicate_group").on(table.duplicateGroupId),
   // Composite indexes for common query patterns
   index("idx_results_status_created_at").on(table.status, table.createdAt),
   index("idx_results_polling_center_status").on(table.pollingCenterId, table.status),
+  index("idx_results_duplicate_status").on(table.isDuplicate, table.status),
 ]);
 
 // Result files table (for uploaded photos)
