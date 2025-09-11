@@ -11,6 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Search, MapPin, Users, FileText, CheckCircle, AlertTriangle, ChevronRight, ChevronLeft, Upload, Save, X } from "lucide-react";
@@ -61,6 +71,7 @@ export default function StreamlinedResultSubmission() {
   const [files, setFiles] = useState<File[]>([]);
   const [isResubmission, setIsResubmission] = useState(false);
   const [rejectedResultId, setRejectedResultId] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // Check for resubmission parameters in URL or props
   const urlParams = new URLSearchParams(window.location.search);
@@ -218,7 +229,14 @@ export default function StreamlinedResultSubmission() {
   });
 
   const onSubmit = (data: FormData) => {
-    submitMutation.mutate(data);
+    // Show confirmation modal instead of directly submitting
+    setShowConfirm(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    const formData = form.getValues();
+    submitMutation.mutate(formData);
+    setShowConfirm(false);
   };
 
   const nextStep = () => {
@@ -703,7 +721,7 @@ export default function StreamlinedResultSubmission() {
               <Button
                 type="submit"
                 disabled={submitMutation.isPending}
-                data-testid="submit-results"
+                data-testid="button-open-confirm"
               >
                 {submitMutation.isPending ? (
                   <>
@@ -712,8 +730,8 @@ export default function StreamlinedResultSubmission() {
                   </>
                 ) : (
                   <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Submit Results
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Review & Submit
                   </>
                 )}
               </Button>
@@ -721,6 +739,152 @@ export default function StreamlinedResultSubmission() {
           </div>
         </form>
       </Form>
+
+      {/* Submit Confirmation Dialog */}
+      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <AlertDialogContent data-testid="dialog-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isResubmission ? "Confirm Resubmission" : "Confirm Results Submission"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Please review your submission before confirming. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {isResubmission && (
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                  <span className="font-medium text-yellow-800 dark:text-yellow-200">
+                    This will replace previously rejected results
+                  </span>
+                </div>
+                {rejectedResultId && (
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                    Result ID: {rejectedResultId}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Polling Center Info */}
+            {selectedCenter && (
+              <div>
+                <h4 className="font-semibold mb-2">Polling Center</h4>
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="font-medium">{selectedCenter.name}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {selectedCenter.code} • {selectedCenter.constituency} • {selectedCenter.district}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {selectedCenter.registeredVoters.toLocaleString()} registered voters
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Category */}
+            <div>
+              <h4 className="font-semibold mb-2">Category</h4>
+              <Badge variant="outline" className="capitalize">
+                {form.getValues("category")} Results
+              </Badge>
+            </div>
+
+            {/* Vote Summary */}
+            <div>
+              <h4 className="font-semibold mb-2">Vote Summary</h4>
+              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg space-y-2">
+                {relevantCandidates.map((candidate: Candidate) => {
+                  const votes = form.getValues(`votes.${candidate.id}`) || 0;
+                  if (votes > 0) {
+                    return (
+                      <div key={candidate.id} className="flex justify-between items-center">
+                        <div>
+                          <span className="font-medium">
+                            {form.getValues("category") === "president" && candidate.runningMateName 
+                              ? `${candidate.name} / ${candidate.runningMateName}` 
+                              : candidate.name}
+                          </span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300 ml-2">
+                            ({candidate.party})
+                          </span>
+                        </div>
+                        <Badge variant="outline">{votes} votes</Badge>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+                
+                <Separator />
+                
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Invalid Votes</span>
+                  <Badge variant="destructive">{form.getValues("invalidVotes") || 0} votes</Badge>
+                </div>
+                
+                <div className="flex justify-between items-center font-bold">
+                  <span>Total Votes</span>
+                  <Badge variant="default">
+                    {Object.values(form.getValues("votes") || {}).reduce((sum: number, votes: any) => sum + Number(votes || 0), 0) + Number(form.getValues("invalidVotes") || 0)} votes
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Files */}
+            {files.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-2">Documents</h4>
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="text-sm">{files.length} file(s) uploaded</p>
+                  <div className="mt-2 space-y-1">
+                    {files.map((file, index) => (
+                      <p key={index} className="text-xs text-gray-600 dark:text-gray-300">
+                        {file.name} ({Math.round(file.size / 1024)}KB)
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Comments */}
+            {form.getValues("comments") && (
+              <div>
+                <h4 className="font-semibold mb-2">Comments</h4>
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                  <p className="text-sm">{form.getValues("comments")}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-submit">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmSubmit}
+              disabled={submitMutation.isPending}
+              data-testid="button-confirm-submit"
+            >
+              {submitMutation.isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  {isResubmission ? "Resubmit Results" : "Submit Results"}
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
