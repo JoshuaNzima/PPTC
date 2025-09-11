@@ -67,6 +67,33 @@ const translations = {
     "dashboard.verified_results": "Verified Results",
     "dashboard.flagged_results": "Flagged Results",
 
+    // Analytics
+    "analytics.liveUpdatesActive": "Live Updates Active",
+    "analytics.connecting": "Connecting...",
+    "analytics.lastUpdated": "Last updated",
+    "analytics.never": "Never",
+    "analytics.totalCenters": "Total Centers",
+    "analytics.reporting": "reporting",
+    "analytics.resultsReceived": "Results Received",
+    "analytics.inLastHour": "in last hour",
+    "analytics.verified": "Verified",
+    "analytics.pendingReview": "Pending Review",
+    "analytics.flaggedForAttention": "flagged for attention",
+    "analytics.submissionTrends": "24-Hour Submission Trends",
+    "analytics.submissionsAndVerificationsByHour": "Submissions and verifications by hour",
+    "analytics.topPerformingCenters": "Top Performing Centers",
+    "analytics.centersWithHighestSubmissionRates": "Centers with highest submission rates",
+    "analytics.recentActivity": "Recent Activity",
+    "analytics.liveFeedOfLatestSubmissions": "Live feed of latest submissions and verifications",
+    "analytics.unknownCenter": "Unknown Center",
+    "analytics.by": "By",
+    "analytics.unknown": "Unknown",
+    "analytics.user": "User",
+    "analytics.votes": "votes",
+    "analytics.justNow": "just now",
+    "analytics.submissions": "Submissions",
+    "analytics.verifications": "Verifications",
+
     // Complaints
     "complaints.title": "Election Complaints System",
     "complaints.subtitle":
@@ -134,6 +161,9 @@ const translations = {
     "status.major_diff": "Major Diff",
     "status.under_review": "Under Review",
     "status.dismissed": "Dismissed",
+    "status.verified": "Verified",
+    "status.pending": "Pending",
+    "status.flagged": "Flagged",
 
     // Messages
     "message.no_data": "No data available",
@@ -214,6 +244,33 @@ const translations = {
     "dashboard.verified_results": "Zotsatira Zotsimikizika",
     "dashboard.flagged_results": "Zotsatira Zolembedwa",
 
+    // Analytics
+    "analytics.liveUpdatesActive": "Zosintha Zaposachedwa",
+    "analytics.connecting": "Kulumikizana...",
+    "analytics.lastUpdated": "Kusinthidwa komaliza",
+    "analytics.never": "Palibe",
+    "analytics.totalCenters": "Malo Onse",
+    "analytics.reporting": "kulipirita",
+    "analytics.resultsReceived": "Zotsatira Zolandidwa",
+    "analytics.inLastHour": "mu ora lomaliza",
+    "analytics.verified": "Zotsimikizika",
+    "analytics.pendingReview": "Zoyembekezera",
+    "analytics.flaggedForAttention": "zolembedwa kuti ziwunikidwe",
+    "analytics.submissionTrends": "Kusintha kwa Kutumiza Kwa Maola 24",
+    "analytics.submissionsAndVerificationsByHour": "Kutumiza ndi kutsimikizira pa ora",
+    "analytics.topPerformingCenters": "Malo Otukuka Kwambiri",
+    "analytics.centersWithHighestSubmissionRates": "Malo omwe ali ndi kutumiza kwambiri",
+    "analytics.recentActivity": "Zochitika Zaposachedwa",
+    "analytics.liveFeedOfLatestSubmissions": "Zotsatira zaposachedwa za kutumiza ndi kutsimikizira",
+    "analytics.unknownCenter": "Malo Osadziwika",
+    "analytics.by": "Ndi",
+    "analytics.unknown": "Osadziwika",
+    "analytics.user": "Munthu",
+    "analytics.votes": "mavoti",
+    "analytics.justNow": "pompano",
+    "analytics.submissions": "Zotumizidwa",
+    "analytics.verifications": "Zotsimikizidwa",
+
     // Complaints
     "complaints.title": "Dongosolo la Madandaulo a Chisankho",
     "complaints.subtitle":
@@ -281,6 +338,9 @@ const translations = {
     "status.major_diff": "Kusiyana Kwakukulu",
     "status.under_review": "Zikuyang'anidwa",
     "status.dismissed": "Zachotsedwa",
+    "status.verified": "Zotsimikizika",
+    "status.pending": "Zoyembekezera", 
+    "status.flagged": "Zolembedwa",
 
     // Messages
     "message.no_data": "Palibe zidziwa zilipo",

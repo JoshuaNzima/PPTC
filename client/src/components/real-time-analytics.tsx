@@ -19,6 +19,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useLanguage } from "@/contexts/language-context";
 import {
   LineChart,
   Line,
@@ -32,14 +33,15 @@ import {
 } from "recharts";
 
 // 🔧 Small utility to prevent crashes
-function safeFormatDistanceToNow(dateValue?: string | number | Date) {
-  if (!dateValue) return "just now";
+function safeFormatDistanceToNow(t: (key: string) => string, dateValue?: string | number | Date) {
+  if (!dateValue) return t("analytics.justNow");
   const date = new Date(dateValue);
-  if (isNaN(date.getTime())) return "just now";
+  if (isNaN(date.getTime())) return t("analytics.justNow");
   return `${formatDistanceToNow(date, { addSuffix: true })}`;
 }
 
 export function RealTimeAnalytics() {
+  const { t } = useLanguage();
   const { analytics, isConnected, requestAnalytics } = useWebSocket();
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
@@ -103,12 +105,12 @@ export function RealTimeAnalytics() {
             className={`w-3 h-3 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
           />
           <span className="text-xs sm:text-sm text-muted-foreground">
-            {isConnected ? "Live Updates Active" : "Connecting..."}
+            {isConnected ? t("analytics.liveUpdatesActive") : t("analytics.connecting")}
           </span>
         </div>
         <div className="text-xs text-muted-foreground">
-          Last updated:{" "}
-          {lastUpdate ? safeFormatDistanceToNow(lastUpdate) : "Never"}
+          {t("analytics.lastUpdated")}:{" "}
+          {lastUpdate ? safeFormatDistanceToNow(t, lastUpdate) : t("analytics.never")}
         </div>
       </div>
 
@@ -118,7 +120,7 @@ export function RealTimeAnalytics() {
           <Card data-testid="stat-total-centers">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Centers
+                {t("analytics.totalCenters")}
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -126,7 +128,7 @@ export function RealTimeAnalytics() {
               <div className="text-2xl font-bold">{stats.totalCenters}</div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Progress value={stats.completionRate} className="w-full h-1" />
-                <span>{(stats.completionRate ?? 0).toFixed(1)}% reporting</span>
+                <span>{(stats.completionRate ?? 0).toFixed(1)}% {t("analytics.reporting")}</span>
               </div>
             </CardContent>
           </Card>
@@ -134,22 +136,21 @@ export function RealTimeAnalytics() {
           <Card data-testid="stat-results-received">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Results Received
+                {t("analytics.resultsReceived")}
               </CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.resultsReceived}</div>
               <p className="text-xs text-muted-foreground">
-                +{(currentAnalytics as any)?.recentActivity?.length || 0} in
-                last hour
+                +{(currentAnalytics as any)?.recentActivity?.length || 0} {t("analytics.inLastHour")}
               </p>
             </CardContent>
           </Card>
 
           <Card data-testid="stat-verified">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Verified</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("analytics.verified")}</CardTitle>
               <CheckCircle className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
@@ -162,7 +163,7 @@ export function RealTimeAnalytics() {
                   className="w-full h-1"
                 />
                 <span>
-                  {(stats.verificationRate ?? 0).toFixed(1)}% verified
+                  {(stats.verificationRate ?? 0).toFixed(1)}% {t("analytics.verified").toLowerCase()}
                 </span>
               </div>
             </CardContent>
@@ -171,7 +172,7 @@ export function RealTimeAnalytics() {
           <Card data-testid="stat-pending">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Pending Review
+                {t("analytics.pendingReview")}
               </CardTitle>
               <Clock className="h-4 w-4 text-yellow-600" />
             </CardHeader>
@@ -180,7 +181,7 @@ export function RealTimeAnalytics() {
                 {(currentAnalytics as any)?.pendingVerifications || 0}
               </div>
               <p className="text-xs text-muted-foreground">
-                {stats.flagged} flagged for attention
+                {stats.flagged} {t("analytics.flaggedForAttention")}
               </p>
             </CardContent>
           </Card>
@@ -195,10 +196,10 @@ export function RealTimeAnalytics() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
-                24-Hour Submission Trends
+                {t("analytics.submissionTrends")}
               </CardTitle>
               <CardDescription>
-                Submissions and verifications by hour
+                {t("analytics.submissionsAndVerificationsByHour")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -228,14 +229,14 @@ export function RealTimeAnalytics() {
                     dataKey="submissions"
                     stroke="#8884d8"
                     strokeWidth={2}
-                    name="Submissions"
+                    name={t("analytics.submissions")}
                   />
                   <Line
                     type="monotone"
                     dataKey="verifications"
                     stroke="#82ca9d"
                     strokeWidth={2}
-                    name="Verifications"
+                    name={t("analytics.verifications")}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -247,9 +248,9 @@ export function RealTimeAnalytics() {
         {(currentAnalytics as any)?.topCenters && (
           <Card data-testid="top-centers-chart">
             <CardHeader>
-              <CardTitle>Top Performing Centers</CardTitle>
+              <CardTitle>{t("analytics.topPerformingCenters")}</CardTitle>
               <CardDescription>
-                Centers with highest submission rates
+                {t("analytics.centersWithHighestSubmissionRates")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -268,7 +269,7 @@ export function RealTimeAnalytics() {
                   <Bar
                     dataKey="submissionCount"
                     fill="#8884d8"
-                    name="Submissions"
+                    name={t("analytics.submissions")}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -281,9 +282,9 @@ export function RealTimeAnalytics() {
       {(currentAnalytics as any)?.recentActivity && (
         <Card data-testid="recent-activity-feed">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>{t("analytics.recentActivity")}</CardTitle>
             <CardDescription>
-              Live feed of latest submissions and verifications
+              {t("analytics.liveFeedOfLatestSubmissions")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -310,11 +311,11 @@ export function RealTimeAnalytics() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">
-                          {activity.pollingCenter?.name || "Unknown Center"}
+                          {activity.pollingCenter?.name || t("analytics.unknownCenter")}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          By {activity.submitter?.firstName || "Unknown"} {activity.submitter?.lastName || "User"} -{" "}
-                          {activity.totalVotes || 0} votes
+                          {t("analytics.by")} {activity.submitter?.firstName || t("analytics.unknown")} {activity.submitter?.lastName || t("analytics.user")} -{" "}
+                          {activity.totalVotes || 0} {t("analytics.votes")}
                         </p>
                       </div>
                     </div>
@@ -328,10 +329,10 @@ export function RealTimeAnalytics() {
                               : "secondary"
                         }
                       >
-                        {activity.status}
+                        {t(`status.${activity.status}`)}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {safeFormatDistanceToNow(activity.createdAt)}
+                        {safeFormatDistanceToNow(t, activity.createdAt)}
                       </span>
                     </div>
                   </div>
