@@ -27,7 +27,7 @@ export const sessions = pgTable(
 );
 
 // User roles enum
-export const userRoleEnum = pgEnum('user_role', ['agent', 'supervisor', 'admin', 'observer']);
+export const userRoleEnum = pgEnum('user_role', ['agent', 'supervisor', 'admin', 'reviewer', 'observer']);
 
 // Result status enum  
 export const resultStatusEnum = pgEnum('result_status', ['pending', 'verified', 'flagged', 'rejected']);

@@ -178,7 +178,11 @@ async function getRealTimeAnalytics() {
     const hourlySubmissions = await storage.getHourlySubmissionTrends();
 
     return {
-      overview: stats,
+      overview: {
+        ...stats,
+        pendingResultsCount: verificationQueue.length,
+        pendingVerifications: verificationQueue.length,
+      },
       recentActivity: recentSubmissions,
       pendingVerifications: verificationQueue.length,
       topCenters: topPerformingCenters,
@@ -456,6 +460,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching constituencies hierarchy:', error);
       res.status(500).json({ error: 'Failed to fetch constituencies hierarchy' });
+    }
+  });
+
+  // Get hierarchical results data for charts
+  app.get('/api/hierarchical-results', isAuthenticated, async (req, res) => {
+    try {
+      const { level = 'constituency', parentId } = req.query;
+      
+      if (level === 'constituency') {
+        // Get all constituencies with their aggregated results
+        const hierarchyData = await storage.getAllConstituenciesWithHierarchy();
+        const hierarchicalData = hierarchyData.map(constituency => ({
+          id: constituency.id,
+          name: constituency.name,
+          type: 'constituency' as const,
+          totalVotes: Math.floor(Math.random() * 50000) + 10000, // Mock data for now
+          resultsReceived: constituency.wards.reduce((sum, ward) => sum + ward.centres.length, 0),
+          verifiedResults: Math.floor(Math.random() * 20) + 5,
+          pendingResults: Math.floor(Math.random() * 10) + 2,
+          flaggedResults: Math.floor(Math.random() * 5),
+          completionRate: Math.random() * 100,
+          verificationRate: Math.random() * 100,
+          partyBreakdown: [
+            { party: 'PP', votes: Math.floor(Math.random() * 20000), percentage: Math.random() * 40, color: '#3B82F6' },
+            { party: 'DPP', votes: Math.floor(Math.random() * 15000), percentage: Math.random() * 30, color: '#EF4444' },
+            { party: 'UDF', votes: Math.floor(Math.random() * 10000), percentage: Math.random() * 20, color: '#10B981' }
+          ]
+        }));
+        res.json(hierarchicalData);
+      } else if (level === 'ward' && parentId) {
+        // Get wards for a specific constituency
+        const hierarchyData = await storage.getAllConstituenciesWithHierarchy();
+        const constituency = hierarchyData.find(c => c.id === parentId);
+        if (!constituency) {
+          return res.status(404).json({ error: 'Constituency not found' });
+        }
+        const hierarchicalData = constituency.wards.map(ward => ({
+          id: ward.id,
+          name: ward.name,
+          type: 'ward' as const,
+          parentId: parentId as string,
+          totalVotes: Math.floor(Math.random() * 10000) + 2000,
+          resultsReceived: ward.centres.length,
+          verifiedResults: Math.floor(Math.random() * 5) + 1,
+          pendingResults: Math.floor(Math.random() * 3),
+          flaggedResults: Math.floor(Math.random() * 2),
+          completionRate: Math.random() * 100,
+          verificationRate: Math.random() * 100,
+          partyBreakdown: [
+            { party: 'PP', votes: Math.floor(Math.random() * 4000), percentage: Math.random() * 40, color: '#3B82F6' },
+            { party: 'DPP', votes: Math.floor(Math.random() * 3000), percentage: Math.random() * 30, color: '#EF4444' },
+            { party: 'UDF', votes: Math.floor(Math.random() * 2000), percentage: Math.random() * 20, color: '#10B981' }
+          ]
+        }));
+        res.json(hierarchicalData);
+      } else if (level === 'center' && parentId) {
+        // Get polling centers for a specific ward
+        const hierarchyData = await storage.getAllConstituenciesWithHierarchy();
+        let ward = null;
+        for (const constituency of hierarchyData) {
+          ward = constituency.wards.find(w => w.id === parentId);
+          if (ward) break;
+        }
+        if (!ward) {
+          return res.status(404).json({ error: 'Ward not found' });
+        }
+        const hierarchicalData = ward.centres.map(center => ({
+          id: center.id,
+          name: center.name,
+          type: 'center' as const,
+          parentId: parentId as string,
+          totalVotes: Math.floor(Math.random() * 2000) + 500,
+          resultsReceived: Math.random() > 0.7 ? 1 : 0,
+          verifiedResults: Math.random() > 0.5 ? 1 : 0,
+          pendingResults: Math.random() > 0.3 ? 1 : 0,
+          flaggedResults: Math.random() > 0.8 ? 1 : 0,
+          completionRate: Math.random() * 100,
+          verificationRate: Math.random() * 100,
+          partyBreakdown: [
+            { party: 'PP', votes: Math.floor(Math.random() * 800), percentage: Math.random() * 40, color: '#3B82F6' },
+            { party: 'DPP', votes: Math.floor(Math.random() * 600), percentage: Math.random() * 30, color: '#EF4444' },
+            { party: 'UDF', votes: Math.floor(Math.random() * 400), percentage: Math.random() * 20, color: '#10B981' }
+          ]
+        }));
+        res.json(hierarchicalData);
+      } else {
+        res.status(400).json({ error: 'Invalid level or missing parentId for drill-down levels' });
+      }
+    } catch (error) {
+      console.error('Error fetching hierarchical results:', error);
+      res.status(500).json({ error: 'Failed to fetch hierarchical results' });
     }
   });
 
@@ -1554,8 +1649,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/results/:id/review", isAuthenticated, async (req: any, res) => {
     try {
       const user = req.user;
-      if (user?.role !== 'supervisor' && user?.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied. Supervisor or admin role required." });
+      if (user?.role !== 'supervisor' && user?.role !== 'admin' && user?.role !== 'reviewer') {
+        return res.status(403).json({ message: "Access denied. Supervisor, admin or reviewer role required." });
       }
 
       const { action, comments } = req.body;
@@ -2826,9 +2921,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user;
 
-      // Only supervisors and admins can escalate complaints
-      if (user?.role !== 'supervisor' && user?.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied. Supervisor or admin role required." });
+      // Only supervisors, admins and reviewers can escalate complaints
+      if (user?.role !== 'supervisor' && user?.role !== 'admin' && user?.role !== 'reviewer') {
+        return res.status(403).json({ message: "Access denied. Supervisor, admin or reviewer role required." });
       }
 
       const complaintId = req.params.id;
@@ -2873,9 +2968,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user;
 
-      // Only supervisors and admins can resolve/dismiss complaints
-      if (user?.role !== 'supervisor' && user?.role !== 'admin') {
-        return res.status(403).json({ message: "Access denied. Supervisor or admin role required." });
+      // Only supervisors, admins and reviewers can resolve/dismiss complaints
+      if (user?.role !== 'supervisor' && user?.role !== 'admin' && user?.role !== 'reviewer') {
+        return res.status(403).json({ message: "Access denied. Supervisor, admin or reviewer role required." });
       }
 
       const complaintId = req.params.id;
