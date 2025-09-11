@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import {
@@ -70,6 +70,8 @@ export function PoliticalPartiesPage() {
   const [candidatesModalOpen, setCandidatesModalOpen] = useState(false);
   const [candidateDialogOpen, setCandidateDialogOpen] = useState(false);
   const [selectedParty, setSelectedParty] = useState<PoliticalParty | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'candidates-asc' | 'candidates-desc'>('name-asc');
   const itemsPerPage = 12;
   const { toast } = useToast();
 
@@ -116,11 +118,44 @@ export function PoliticalPartiesPage() {
     ).length;
   };
 
+  // Filter and sort logic
+  const filteredAndSortedParties = parties ? (() => {
+    let filtered = (parties as any[]).filter((party: PoliticalParty) =>
+      party.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (party.abbreviation && party.abbreviation.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (party.description && party.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    // Sort parties
+    filtered.sort((a: PoliticalParty, b: PoliticalParty) => {
+      const candidatesA = getCandidateCount(a.id, a.name);
+      const candidatesB = getCandidateCount(b.id, b.name);
+      
+      switch (sortBy) {
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        case 'candidates-asc':
+          return candidatesA - candidatesB;
+        case 'candidates-desc':
+          return candidatesB - candidatesA;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  })() : [];
+
+  // Reset page to 1 when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   // Pagination logic
-  const totalPages = parties ? Math.ceil((parties as any[]).length / itemsPerPage) : 0;
-  const paginatedParties = parties 
-    ? (parties as any[]).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-    : [];
+  const totalPages = filteredAndSortedParties ? Math.ceil(filteredAndSortedParties.length / itemsPerPage) : 0;
+  const paginatedParties = filteredAndSortedParties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const createPartyMutation = useMutation({
     mutationFn: async (partyData: z.infer<typeof formSchema>) => {
@@ -566,27 +601,69 @@ export function PoliticalPartiesPage() {
             </Form>
           </DialogContent>
         </Dialog>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Button
-            variant={viewMode === 'card' ? 'default' : 'outline'}
-            className="flex-1 sm:flex-initial h-10 text-sm"
-            onClick={() => setViewMode('card')}
-            data-testid="button-card-view"
-          >
-            <Grid className="h-4 w-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Cards</span>
-            <span className="sm:hidden">Grid</span>
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            className="flex-1 sm:flex-initial h-10 text-sm"
-            onClick={() => setViewMode('list')}
-            data-testid="button-list-view"
-          >
-            <List className="h-4 w-4 mr-1 sm:mr-2" />
-            List
-          </Button>
+      </div>
+
+      {/* Enhanced Search and Sort Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <div className="flex-1 w-full sm:max-w-sm">
+          <Input
+            type="text"
+            placeholder="Search parties by name, abbreviation, or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full"
+            data-testid="input-search-parties"
+          />
         </div>
+        
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+            <SelectTrigger className="w-full sm:w-[160px]" data-testid="select-sort">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name-asc">Name A-Z</SelectItem>
+              <SelectItem value="name-desc">Name Z-A</SelectItem>
+              <SelectItem value="candidates-desc">Most Candidates</SelectItem>
+              <SelectItem value="candidates-asc">Fewest Candidates</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'card' ? 'default' : 'outline'}
+              className="flex-1 sm:flex-initial h-10 text-sm"
+              onClick={() => setViewMode('card')}
+              data-testid="button-card-view"
+            >
+              <Grid className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Cards</span>
+              <span className="sm:hidden">Grid</span>
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              className="flex-1 sm:flex-initial h-10 text-sm"
+              onClick={() => setViewMode('list')}
+              data-testid="button-list-view"
+            >
+              <List className="h-4 w-4 mr-1 sm:mr-2" />
+              List
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Summary */}
+      {filteredAndSortedParties.length > 0 && (
+        <div className="text-sm text-muted-foreground">
+          {searchTerm ? 
+            `Showing ${filteredAndSortedParties.length} of ${(parties as any[])?.length || 0} parties` : 
+            `${filteredAndSortedParties.length} parties total`
+          }
+        </div>
+      )}
+
+      <div>
       </div>
 
       {viewMode === 'card' ? (
