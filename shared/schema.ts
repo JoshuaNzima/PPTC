@@ -166,6 +166,8 @@ export const candidates = pgTable("candidates", {
   party: varchar("party").notNull(), // Keep for backward compatibility
   category: candidateCategoryEnum("category").notNull(),
   constituency: varchar("constituency"), // For MPs and Councilors
+  runningMateId: varchar("running_mate_id").references(() => candidates.id), // For presidential running mates
+  runningMateName: varchar("running_mate_name"), // Store name for easy display
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
