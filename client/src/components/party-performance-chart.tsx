@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, Users, Vote, Award } from "lucide-react";
+import { useLanguage } from "@/contexts/language-context";
 
 interface PartyPerformance {
   party: string;
@@ -30,6 +31,7 @@ const CATEGORY_COLORS = {
 };
 
 export default function PartyPerformanceChart() {
+  const { t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
 
@@ -49,12 +51,12 @@ export default function PartyPerformanceChart() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <TrendingUp className="h-5 w-5" />
-            <span>Party Performance</span>
+            <span>{t("charts.partyPerformance")}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
-            <div className="text-center">Loading party performance data...</div>
+            <div className="text-center">{t("charts.loadingPartyData")}</div>
           </div>
         </CardContent>
       </Card>
@@ -67,14 +69,14 @@ export default function PartyPerformanceChart() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <TrendingUp className="h-5 w-5" />
-            <span>Party Performance</span>
+            <span>{t("charts.partyPerformance")}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
             <div className="text-center text-gray-500">
               <Vote className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              No verified results available yet
+              {t("charts.noVerifiedResults")}
             </div>
           </div>
         </CardContent>
@@ -91,7 +93,7 @@ export default function PartyPerformanceChart() {
         <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
           <CardTitle className="flex items-center space-x-2">
             <TrendingUp className="h-5 w-5" />
-            <span className="text-lg sm:text-xl">Party Performance</span>
+            <span className="text-lg sm:text-xl">{t("charts.partyPerformance")}</span>
           </CardTitle>
           
           <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
@@ -100,8 +102,8 @@ export default function PartyPerformanceChart() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="bar">Bar</SelectItem>
-                <SelectItem value="pie">Pie</SelectItem>
+                <SelectItem value="bar">{t("charts.bar")}</SelectItem>
+                <SelectItem value="pie">{t("charts.pie")}</SelectItem>
               </SelectContent>
             </Select>
             
@@ -110,10 +112,10 @@ export default function PartyPerformanceChart() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="president">Presidential</SelectItem>
-                <SelectItem value="mp">MP</SelectItem>
-                <SelectItem value="councilor">Councilor</SelectItem>
+                <SelectItem value="all">{t("charts.allCategories")}</SelectItem>
+                <SelectItem value="president">{t("category.president")}</SelectItem>
+                <SelectItem value="mp">{t("category.mp")}</SelectItem>
+                <SelectItem value="councilor">{t("category.councilor")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -124,12 +126,12 @@ export default function PartyPerformanceChart() {
           <div className="bg-blue-50 p-3 rounded-lg">
             <div className="flex items-center space-x-2">
               <Award className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">Leading Party</span>
+              <span className="text-sm font-medium text-blue-900">{t("charts.leadingParty")}</span>
             </div>
             <div className="mt-1">
-              <div className="font-bold text-blue-900">{leadingParty?.party || 'N/A'}</div>
+              <div className="font-bold text-blue-900">{leadingParty?.party || t("common.na")}</div>
               <div className="text-sm text-blue-700">
-                {leadingParty?.totalVotes.toLocaleString() || 0} votes ({leadingParty?.percentage.toFixed(1) || 0}%)
+                {leadingParty?.totalVotes.toLocaleString() || 0} {t("analytics.votes")} ({leadingParty?.percentage.toFixed(1) || 0}%)
               </div>
             </div>
           </div>
@@ -137,12 +139,12 @@ export default function PartyPerformanceChart() {
           <div className="bg-green-50 p-3 rounded-lg">
             <div className="flex items-center space-x-2">
               <Vote className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium text-green-900">Total Votes</span>
+              <span className="text-sm font-medium text-green-900">{t("analytics.totalVotes")}</span>
             </div>
             <div className="mt-1">
               <div className="font-bold text-green-900">{totalVotes.toLocaleString()}</div>
               <div className="text-sm text-green-700">
-                Across {partyData.length} parties
+                {t("charts.across")} {partyData.length} {t("charts.parties")}
               </div>
             </div>
           </div>
@@ -150,12 +152,12 @@ export default function PartyPerformanceChart() {
           <div className="bg-purple-50 p-3 rounded-lg">
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 text-purple-600" />
-              <span className="text-sm font-medium text-purple-900">Active Parties</span>
+              <span className="text-sm font-medium text-purple-900">{t("charts.activeParties")}</span>
             </div>
             <div className="mt-1">
               <div className="font-bold text-purple-900">{partyData.length}</div>
               <div className="text-sm text-purple-700">
-                With verified results
+                {t("charts.withVerifiedResults")}
               </div>
             </div>
           </div>
@@ -183,19 +185,19 @@ export default function PartyPerformanceChart() {
                         const data = payload[0].payload as PartyPerformance;
                         return (
                           <div className="bg-white p-3 border rounded shadow-lg">
-                            <p className="font-medium">{`Party: ${label}`}</p>
-                            <p className="text-blue-600">{`Total Votes: ${data.totalVotes.toLocaleString()}`}</p>
+                            <p className="font-medium">{`${t("charts.party")}: ${label}`}</p>
+                            <p className="text-blue-600">{`${t("analytics.totalVotes")}: ${data.totalVotes.toLocaleString()}`}</p>
                             {data.categoryBreakdown && (
                               <div className="mt-2 space-y-1">
-                                <p className="text-sm font-medium">Category Breakdown:</p>
+                                <p className="text-sm font-medium">{t("charts.categoryBreakdown")}:</p>
                                 {data.categoryBreakdown.president && (
-                                  <p className="text-sm text-red-600">Presidential: {data.categoryBreakdown.president.toLocaleString()}</p>
+                                  <p className="text-sm text-red-600">{t("category.president")}: {data.categoryBreakdown.president.toLocaleString()}</p>
                                 )}
                                 {data.categoryBreakdown.mp && (
-                                  <p className="text-sm text-green-600">MP: {data.categoryBreakdown.mp.toLocaleString()}</p>
+                                  <p className="text-sm text-green-600">{t("category.mp")}: {data.categoryBreakdown.mp.toLocaleString()}</p>
                                 )}
                                 {data.categoryBreakdown.councilor && (
-                                  <p className="text-sm text-purple-600">Councilor: {data.categoryBreakdown.councilor.toLocaleString()}</p>
+                                  <p className="text-sm text-purple-600">{t("category.councilor")}: {data.categoryBreakdown.councilor.toLocaleString()}</p>
                                 )}
                               </div>
                             )}
@@ -204,8 +206,8 @@ export default function PartyPerformanceChart() {
                       } else {
                         return (
                           <div className="bg-white p-3 border rounded shadow-lg">
-                            <p className="font-medium">{`Party: ${label}`}</p>
-                            <p className="text-blue-600">{`Votes: ${payload[0].value?.toLocaleString()}`}</p>
+                            <p className="font-medium">{`${t("charts.party")}: ${label}`}</p>
+                            <p className="text-blue-600">{`${t("analytics.votes")}: ${payload[0].value?.toLocaleString()}`}</p>
                           </div>
                         );
                       }
@@ -287,7 +289,7 @@ export default function PartyPerformanceChart() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => [value.toLocaleString(), 'Votes']} />
+                <Tooltip formatter={(value: number) => [value.toLocaleString(), t("analytics.votes")]} />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -295,7 +297,7 @@ export default function PartyPerformanceChart() {
 
         {/* Party Details */}
         <div className="mt-6 space-y-3">
-          <h4 className="font-medium text-gray-900">Party Breakdown</h4>
+          <h4 className="font-medium text-gray-900">{t("charts.partyBreakdown")}</h4>
           <div className="grid gap-2 max-h-40 overflow-y-auto">
             {partyData.map((party: PartyPerformance, index: number) => (
               <div key={`${party.party}-${party.category}`} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
@@ -311,7 +313,7 @@ export default function PartyPerformanceChart() {
                   <div>
                     <div className="font-medium">{party.party}</div>
                     <div className="text-xs text-gray-500 flex items-center gap-2">
-                      <span>{party.candidates} candidates</span>
+                      <span>{party.candidates} {t("charts.candidates")}</span>
                       <span>•</span>
                       <Badge 
                         variant="outline" 
@@ -321,7 +323,7 @@ export default function PartyPerformanceChart() {
                           color: CATEGORY_COLORS[party.category]
                         }}
                       >
-                        {party.category}
+                        {t(`category.${party.category}`)}
                       </Badge>
                     </div>
                   </div>
