@@ -23,21 +23,12 @@ import ComplaintsPage from "@/pages/complaints";
 import MECResultsPage from "@/pages/mec-results";
 import InternalResultsPage from "@/pages/internal-results";
 import ResultsComparisonPage from "@/pages/results-comparison";
-import Presentation from "@/pages/presentation";
 import Navigation from "@/components/navigation";
 import Sidebar from "@/components/sidebar";
 import LanguageSelector from "@/components/language-selector";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
-
-  // A simple wrapper for routes that require authentication
-  const ProtectedRoute = ({ children }) => {
-    const { isAuthenticated, isLoading } = useAuth();
-    if (isLoading) return null; // Or a loading spinner
-    if (!isAuthenticated) return <Landing />; // Redirect to landing if not authenticated
-    return children;
-  };
 
   return (
     <Switch>
@@ -67,7 +58,6 @@ function Router() {
                   <Route path="/review-flagged" component={ReviewFlagged} />
                   <Route path="/audit-trail" component={AuditTrail} />
                   <Route path="/profile" component={Profile} />
-                  <Route path="/presentation" component={Presentation} />
                   <Route component={NotFound} />
                 </Switch>
               </main>
