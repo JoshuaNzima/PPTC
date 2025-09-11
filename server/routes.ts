@@ -9,7 +9,9 @@ import { storage } from "./storage";
 import importExportRoutes from "./routes/importExport";
 import { setupAuth, isAuthenticated, hashPassword, validateRegister, validateLogin } from "./auth";
 import passport from "passport";
-import { insertResultSchema, insertPollingCenterSchema, insertCandidateSchema, insertPoliticalPartySchema, insertComplaintSchema } from "@shared/schema";
+import { insertResultSchema, insertPollingCenterSchema, insertCandidateSchema, insertPoliticalPartySchema, insertComplaintSchema, results, pollingCenters, users } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, inArray } from "drizzle-orm";
 import { seedDatabase } from "./seed";
 
 // Configure multer for file uploads
@@ -551,6 +553,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching hierarchical results:', error);
       res.status(500).json({ error: 'Failed to fetch hierarchical results' });
+    }
+  });
+
+  // Get duplicate results for comparison
+  app.get('/api/duplicate-results', isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = req.user;
+      if (!currentUser || !['admin', 'supervisor', 'reviewer'].includes(currentUser.role)) {
+        return res.status(403).json({ error: 'Access denied. Only reviewers, supervisors, and admins can view duplicate results.' });
+      }
+
+      // Get all results that are flagged as duplicates
+      const duplicateResults = await db
+        .select({
+          id: results.id,
+          pollingCenterId: results.pollingCenterId,
+          submittedBy: results.submittedBy,
+          presidentialVotes: results.presidentialVotes,
+          mpVotes: results.mpVotes,
+          councilorVotes: results.councilorVotes,
+          invalidVotes: results.invalidVotes,
+          totalVotes: results.totalVotes,
+          status: results.status,
+          flaggedReason: results.flaggedReason,
+          isDuplicate: results.isDuplicate,
+          duplicateGroupId: results.duplicateGroupId,
+          duplicateReason: results.duplicateReason,
+          relatedResultIds: results.relatedResultIds,
+          createdAt: results.createdAt,
+          pollingCenter: {
+            id: pollingCenters.id,
+            name: pollingCenters.name,
+            code: pollingCenters.code,
+            constituency: pollingCenters.constituency,
+            district: pollingCenters.district
+          },
+          submitter: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            role: users.role
+          }
+        })
+        .from(results)
+        .leftJoin(pollingCenters, eq(results.pollingCenterId, pollingCenters.id))
+        .leftJoin(users, eq(results.submittedBy, users.id))
+        .where(eq(results.isDuplicate, true))
+        .orderBy(desc(results.createdAt));
+
+      // Group results by duplicateGroupId
+      const groupedResults = duplicateResults.reduce((groups, result) => {
+        const groupId = result.duplicateGroupId || 'ungrouped';
+        if (!groups[groupId]) {
+          groups[groupId] = [];
+        }
+        groups[groupId].push(result);
+        return groups;
+      }, {} as Record<string, typeof duplicateResults>);
+
+      res.json({ groups: groupedResults, total: duplicateResults.length });
+    } catch (error) {
+      console.error('Error fetching duplicate results:', error);
+      res.status(500).json({ error: 'Failed to fetch duplicate results' });
+    }
+  });
+
+  // Get specific duplicate result comparison
+  app.get('/api/duplicate-results/:groupId', isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = req.user;
+      if (!currentUser || !['admin', 'supervisor', 'reviewer'].includes(currentUser.role)) {
+        return res.status(403).json({ error: 'Access denied. Only reviewers, supervisors, and admins can view duplicate results.' });
+      }
+
+      const { groupId } = req.params;
+
+      // Get all results in this duplicate group
+      const duplicateResults = await db
+        .select()
+        .from(results)
+        .leftJoin(pollingCenters, eq(results.pollingCenterId, pollingCenters.id))
+        .leftJoin(users, eq(results.submittedBy, users.id))
+        .where(eq(results.duplicateGroupId, groupId))
+        .orderBy(desc(results.createdAt));
+
+      const formattedResults = duplicateResults.map(row => ({
+        ...row.results,
+        pollingCenter: row.polling_centers,
+        submitter: row.users
+      }));
+
+      res.json(formattedResults);
+    } catch (error) {
+      console.error('Error fetching duplicate result comparison:', error);
+      res.status(500).json({ error: 'Failed to fetch duplicate result comparison' });
+    }
+  });
+
+  // Resolve duplicate results (approve one, reject others)
+  app.post('/api/duplicate-results/:groupId/resolve', isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = req.user;
+      if (!currentUser || !['admin', 'supervisor', 'reviewer'].includes(currentUser.role)) {
+        return res.status(403).json({ error: 'Access denied. Only reviewers, supervisors, and admins can resolve duplicate results.' });
+      }
+
+      const { groupId } = req.params;
+      const { approvedResultId, resolution, reason } = req.body;
+
+      if (!approvedResultId || !resolution) {
+        return res.status(400).json({ error: 'Approved result ID and resolution are required' });
+      }
+
+      // Get all results in this duplicate group
+      const duplicateResults = await db
+        .select()
+        .from(results)
+        .where(eq(results.duplicateGroupId, groupId));
+
+      if (duplicateResults.length === 0) {
+        return res.status(404).json({ error: 'Duplicate group not found' });
+      }
+
+      // Approve the selected result
+      await db
+        .update(results)
+        .set({ 
+          status: 'verified',
+          verifiedBy: currentUser.id,
+          verifiedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(results.id, approvedResultId));
+
+      // Reject all other results in the group
+      const otherResultIds = duplicateResults
+        .filter(r => r.id !== approvedResultId)
+        .map(r => r.id);
+
+      if (otherResultIds.length > 0) {
+        await db
+          .update(results)
+          .set({ 
+            status: 'rejected',
+            verifiedBy: currentUser.id,
+            verifiedAt: new Date(),
+            flaggedReason: `Rejected as duplicate: ${reason || 'Duplicate result resolution'}`,
+            updatedAt: new Date()
+          })
+          .where(inArray(results.id, otherResultIds));
+      }
+
+      // Create audit log entry
+      await storage.createAuditLog({
+        userId: currentUser.id,
+        action: "RESOLVE_DUPLICATES",
+        entityType: "duplicate_group",
+        entityId: groupId,
+        newValues: {
+          approvedResultId,
+          rejectedResultIds: otherResultIds,
+          resolution,
+          reason
+        },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+
+      res.json({ 
+        message: 'Duplicate results resolved successfully',
+        approvedResultId,
+        rejectedCount: otherResultIds.length
+      });
+    } catch (error) {
+      console.error('Error resolving duplicate results:', error);
+      res.status(500).json({ error: 'Failed to resolve duplicate results' });
     }
   });
 

@@ -23,6 +23,7 @@ import ComplaintsPage from "@/pages/complaints";
 import MECResultsPage from "@/pages/mec-results";
 import InternalResultsPage from "@/pages/internal-results";
 import ResultsComparisonPage from "@/pages/results-comparison";
+import DuplicateResults from "@/pages/duplicate-results";
 import Navigation from "@/components/navigation";
 import Sidebar from "@/components/sidebar";
 import LanguageSelector from "@/components/language-selector";
@@ -49,6 +50,7 @@ function Router() {
                   <Route path="/mec-results" component={MECResultsPage} />
                   <Route path="/internal-results" component={InternalResultsPage} />
                   <Route path="/results-comparison" component={ResultsComparisonPage} />
+                  <Route path="/duplicate-results" component={DuplicateResults} />
                   <Route path="/verify-results" component={VerifyResults} />
                   <Route path="/reports" component={Reports} />
                   <Route path="/user-management" component={UserManagement} />
