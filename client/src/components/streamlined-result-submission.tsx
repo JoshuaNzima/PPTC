@@ -62,6 +62,18 @@ export default function StreamlinedResultSubmission() {
   const [isResubmission, setIsResubmission] = useState(false);
   const [rejectedResultId, setRejectedResultId] = useState<string | null>(null);
 
+  // Check for resubmission parameters in URL or props
+  const urlParams = new URLSearchParams(window.location.search);
+  const resubmissionId = urlParams.get('resubmit');
+
+  // Initialize resubmission state if URL parameter is present
+  useState(() => {
+    if (resubmissionId) {
+      setIsResubmission(true);
+      setRejectedResultId(resubmissionId);
+    }
+  });
+
   // Fetch data
   const { data: pollingCenters = [] } = useQuery({
     queryKey: ["/api/polling-centers"],
@@ -338,13 +350,33 @@ export default function StreamlinedResultSubmission() {
                 <Card key={candidate.id}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h4 className="font-semibold">{candidate.name}</h4>
+                      <div className="space-y-2">
+                        {/* Presidential candidates with running mates */}
+                        {watchedCategory === "president" && candidate.runningMateName ? (
+                          <div>
+                            <h4 className="font-semibold text-lg">
+                              {candidate.name} / {candidate.runningMateName}
+                            </h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                              President & Vice President
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <h4 className="font-semibold">{candidate.name}</h4>
+                            {watchedCategory !== "president" && candidate.constituency && (
+                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                                {candidate.constituency}
+                              </p>
+                            )}
+                          </div>
+                        )}
                         <div className="flex items-center gap-2">
                           <Badge variant="outline">{candidate.party}</Badge>
-                          {candidate.runningMateName && (
-                            <Badge variant="secondary">VP: {candidate.runningMateName}</Badge>
-                          )}
+                          <Badge variant="secondary" className="capitalize">
+                            {watchedCategory === "president" ? "Presidential" : 
+                             watchedCategory === "mp" ? "MP" : "Councilor"}
+                          </Badge>
                         </div>
                       </div>
                     </div>
@@ -575,14 +607,53 @@ export default function StreamlinedResultSubmission() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      {/* Resubmission Mode Toggle */}
+      {!isResubmission && (
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium text-blue-800 dark:text-blue-200">Need to resubmit rejected results?</h4>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                Toggle this if you're correcting previously rejected results.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsResubmission(true);
+                // You could also add logic here to let them select which rejected result to replace
+              }}
+              data-testid="enable-resubmission"
+            >
+              Enable Resubmission Mode
+            </Button>
+          </div>
+        </div>
+      )}
+
       {isResubmission && (
         <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-yellow-600" />
-            <span className="font-medium text-yellow-800 dark:text-yellow-200">Resubmitting Rejected Results</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-600" />
+              <span className="font-medium text-yellow-800 dark:text-yellow-200">Resubmitting Rejected Results</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsResubmission(false);
+                setRejectedResultId(null);
+              }}
+              data-testid="disable-resubmission"
+            >
+              <X className="w-4 h-4" />
+            </Button>
           </div>
           <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
             This submission will replace your previously rejected results.
+            {rejectedResultId && ` (ID: ${rejectedResultId})`}
           </p>
         </div>
       )}
